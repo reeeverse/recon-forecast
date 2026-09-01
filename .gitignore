@@ -1,0 +1,40 @@
+# Secrets / credentials — never commit these
+.env
+.env.*
+*.pem
+*.key
+credentials
+*credentials*
+*.tfstate
+*.tfstate.*
+.terraform/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# Node / frontend
+node_modules/
+dist/
+.DS_Store
+
+# Generated data (keep generate.py and demo/ but not generated CSVs)
+data/*.csv
+data/expected.json
+
+# IDE
+.idea/
+.vscode/
+*.swp

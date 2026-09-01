@@ -81,7 +81,7 @@ def _fetch_batch_lines(batch_id: int, db: Session):
 def run_reconciliation(body: RunReconRequest, db: Session = Depends(get_db)):
     """Manually (re)run reconciliation for a batch."""
     batch = db.execute(
-        text("SELECT id FROM ingestion_batches WHERE id = :bid"),
+        text("SELECT id FROM import_batches WHERE id = :bid"),
         {"bid": body.batch_id},
     ).fetchone()
     if not batch:
@@ -138,7 +138,7 @@ def get_summary(
             raise HTTPException(status_code=400, detail="batch_id or account_id required")
         row = db.execute(
             text("""
-                SELECT id FROM ingestion_batches
+                SELECT id FROM import_batches
                 WHERE account_id = :aid ORDER BY created_at DESC LIMIT 1
             """),
             {"aid": account_id},
@@ -188,7 +188,7 @@ def get_summary(
     ).scalar() or 0
 
     status = db.execute(
-        text("SELECT status FROM ingestion_batches WHERE id = :bid"),
+        text("SELECT status FROM import_batches WHERE id = :bid"),
         {"bid": batch_id},
     ).scalar() or "unknown"
 

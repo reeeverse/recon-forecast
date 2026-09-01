@@ -86,10 +86,10 @@ def test_match_rate_above_70_pct(reconcile_results, synthetic_data):
 
 
 def test_no_double_assignment(reconcile_results):
-    """Each bank_id and ledger_id appears at most once in matched results."""
-    matched = [r for r in reconcile_results if r.ledger_id is not None]
-    bank_ids = [r.bank_id for r in matched]
-    ledger_ids = [r.ledger_id for r in matched]
+    """Each bank_id and ledger_id appears at most once in matched (paired) results."""
+    paired = [r for r in reconcile_results if r.bank_id is not None and r.ledger_id is not None]
+    bank_ids = [r.bank_id for r in paired]
+    ledger_ids = [r.ledger_id for r in paired]
     assert len(bank_ids) == len(set(bank_ids)), "bank_id assigned to multiple matches"
     assert len(ledger_ids) == len(set(ledger_ids)), "ledger_id assigned to multiple matches"
 

@@ -72,14 +72,18 @@ def internal_ingest(body: IngestRequest, db: Session = Depends(get_db)):
     except Exception as exc:
         raise HTTPException(status_code=400, detail=f"S3 download failed: {exc}") from exc
 
-    # 2. Create ingestion batch
+    # 2. Create import batch
     batch_row = db.execute(
         text("""
-            INSERT INTO ingestion_batches (account_id, source, status, created_at)
-            VALUES (:aid, 's3', 'processing', now())
+            INSERT INTO import_batches (account_id, s3_key_statement, s3_key_ledger, status)
+            VALUES (:aid, :stmt_key, :ledger_key, 'ingested')
             RETURNING id
         """),
-        {"aid": body.account_id},
+        {
+            "aid": body.account_id,
+            "stmt_key": f"{body.prefix}statement.csv",
+            "ledger_key": f"{body.prefix}ledger.csv",
+        },
     ).fetchone()
     db.commit()
     batch_id = batch_row.id
@@ -94,7 +98,7 @@ def internal_ingest(body: IngestRequest, db: Session = Depends(get_db)):
         )
     except ValueError as exc:
         db.execute(
-            text("UPDATE ingestion_batches SET status='error' WHERE id=:bid"),
+            text("UPDATE import_batches SET status='failed' WHERE id=:bid"),
             {"bid": batch_id},
         )
         db.commit()
@@ -212,7 +216,7 @@ def internal_ingest(body: IngestRequest, db: Session = Depends(get_db)):
 
     # 8. Mark batch done
     db.execute(
-        text("UPDATE ingestion_batches SET status='done' WHERE id=:bid"),
+        text("UPDATE import_batches SET status='forecast_done' WHERE id=:bid"),
         {"bid": batch_id},
     )
     db.commit()

@@ -25,13 +25,10 @@ router = APIRouter(
 )
 
 
-def _make_batch(account_id: str, source: str, db: Session) -> int:
+def _make_batch(account_id: str, db: Session) -> int:
     row = db.execute(
-        text("""
-            INSERT INTO ingestion_batches (account_id, source, status, created_at)
-            VALUES (:aid, :src, 'pending', now()) RETURNING id
-        """),
-        {"aid": account_id, "src": source},
+        text("INSERT INTO import_batches (account_id, status) VALUES (:aid, 'ingested') RETURNING id"),
+        {"aid": account_id},
     ).fetchone()
     db.commit()
     return row.id
@@ -71,7 +68,7 @@ def upload_statement(
     db: Session = Depends(get_db),
 ):
     """Direct multipart upload of bank CSV — fallback when S3 unavailable."""
-    batch_id = _make_batch(account_id, "direct", db)
+    batch_id = _make_batch(account_id, db)
     content = file.file.read().decode("utf-8", errors="replace")
     try:
         rows = load_bank_csv(io.StringIO(content), batch_id, account_id, db)
@@ -89,7 +86,7 @@ def upload_ledger(
     db: Session = Depends(get_db),
 ):
     """Direct multipart upload of ledger CSV — fallback when S3 unavailable."""
-    batch_id = _make_batch(account_id, "direct", db)
+    batch_id = _make_batch(account_id, db)
     content = file.file.read().decode("utf-8", errors="replace")
     try:
         rows = load_ledger_csv(io.StringIO(content), batch_id, account_id, db)

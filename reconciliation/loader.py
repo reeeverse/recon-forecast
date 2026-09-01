@@ -5,13 +5,30 @@ Validates headers, coerces types, computes raw_row_hash, and inserts rows
 into the database. Raises ValueError on any malformed row — never silently drops.
 """
 
+import contextlib
 import csv
 import hashlib
 from datetime import date
 from pathlib import Path
+from typing import IO, Union
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+PathOrFile = Union[str, Path, IO[str]]
+
+
+@contextlib.contextmanager
+def _open(source: PathOrFile):
+    """Yield a text file handle from a path or an already-open file-like object."""
+    if isinstance(source, (str, Path)):
+        with open(Path(source), newline="", encoding="utf-8") as f:
+            yield f
+    else:
+        # File-like: rewind if possible, then hand it back without closing
+        if hasattr(source, "seek"):
+            source.seek(0)
+        yield source
 
 BANK_REQUIRED = {
     "account_id", "txn_date", "value_date",
@@ -49,18 +66,18 @@ def _parse_direction(value: str) -> str:
     return v
 
 
-def load_bank_csv(path: str | Path, batch_id: int, account_id: str, db: Session) -> int:
+def load_bank_csv(source: PathOrFile, batch_id: int, account_id: str, db: Session) -> int:
     """
     Load a bank statement CSV into bank_statement_lines.
 
+    Accepts a file path (str/Path) or an already-open text file-like object.
     Only rows matching account_id are inserted. Returns the number of rows inserted.
     Raises ValueError listing all malformed rows (up to 10 shown).
     """
-    path = Path(path)
     errors: list[str] = []
     rows_inserted = 0
 
-    with open(path, newline="", encoding="utf-8") as f:
+    with _open(source) as f:
         reader = csv.DictReader(f)
         missing_cols = BANK_REQUIRED - set(reader.fieldnames or [])
         if missing_cols:
@@ -127,18 +144,18 @@ def load_bank_csv(path: str | Path, batch_id: int, account_id: str, db: Session)
     return rows_inserted
 
 
-def load_ledger_csv(path: str | Path, batch_id: int, account_id: str, db: Session) -> int:
+def load_ledger_csv(source: PathOrFile, batch_id: int, account_id: str, db: Session) -> int:
     """
     Load a ledger CSV into ledger_entries.
 
+    Accepts a file path (str/Path) or an already-open text file-like object.
     Only rows matching account_id are inserted. Returns the number of rows inserted.
     Raises ValueError listing all malformed rows (up to 10 shown).
     """
-    path = Path(path)
     errors: list[str] = []
     rows_inserted = 0
 
-    with open(path, newline="", encoding="utf-8") as f:
+    with _open(source) as f:
         reader = csv.DictReader(f)
         missing_cols = LEDGER_REQUIRED - set(reader.fieldnames or [])
         if missing_cols:

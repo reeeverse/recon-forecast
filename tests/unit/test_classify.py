@@ -2,7 +2,6 @@ from datetime import date
 
 from reconciliation.classify import classify_exception, mark_duplicates
 
-
 # ── mark_duplicates ────────────────────────────────────────────────────────────
 
 def test_mark_duplicates_no_dupes():

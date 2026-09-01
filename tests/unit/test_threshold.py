@@ -1,10 +1,7 @@
 from datetime import date, timedelta
-from unittest.mock import MagicMock, call
-
-import pytest
+from unittest.mock import MagicMock
 
 from forecasting.threshold import evaluate_threshold, severity
-
 
 # ── severity ───────────────────────────────────────────────────────────────────
 
@@ -88,7 +85,7 @@ def test_evaluate_first_breach_day_only():
     """Only the first breach should produce an alert, not subsequent days."""
     points = _make_points(start=25_000_000, daily=-1_900_000)
     db = _mock_db(existing_alert=None)
-    result = evaluate_threshold("ACC-001", points, 20_000_000, 1, db)
+    evaluate_threshold("ACC-001", points, 20_000_000, 1, db)
     # One SELECT (dedupe check) + one INSERT = 2 total execute calls
     assert db.execute.call_count == 2
     db.commit.assert_called_once()

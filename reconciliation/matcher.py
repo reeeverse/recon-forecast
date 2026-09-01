@@ -6,7 +6,7 @@ matches highest-confidence-first with a one-consumption rule so each ledger
 entry backs at most one bank line.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 
 from reconciliation.scoring import score_pair

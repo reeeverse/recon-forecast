@@ -2,6 +2,7 @@ from datetime import date
 
 import pytest
 
+from reconciliation.matcher import BankLine, LedgerEntry, reconcile
 from reconciliation.normalize import normalize_description, normalize_reference
 from reconciliation.scoring import (
     amount_score,
@@ -10,8 +11,6 @@ from reconciliation.scoring import (
     reference_score,
     weighted_confidence,
 )
-from reconciliation.matcher import BankLine, LedgerEntry, reconcile
-
 
 # ── normalize ──────────────────────────────────────────────────────────────────
 

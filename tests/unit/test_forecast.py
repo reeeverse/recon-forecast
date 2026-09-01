@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 import pandas as pd
-import pytest
 
 from forecasting.model import holt_forecast, naive_forecast
 
@@ -26,7 +25,7 @@ def test_naive_returns_horizon_points():
 def test_naive_dates_contiguous():
     series = _make_series(5)
     result = naive_forecast(series, horizon=14)
-    today = date(2026, 8, 29)
+    today = date.today()
     for i, point in enumerate(result, start=1):
         assert point["horizon_date"] == today + timedelta(days=i)
 
@@ -63,7 +62,7 @@ def test_holt_returns_horizon_points():
 def test_holt_dates_contiguous():
     series = _make_series(60)
     result = holt_forecast(series, horizon=14)
-    today = date(2026, 8, 29)
+    today = date.today()
     for i, point in enumerate(result, start=1):
         assert point["horizon_date"] == today + timedelta(days=i)
 

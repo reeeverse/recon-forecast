@@ -1,4 +1,4 @@
-"""AI Agent routes: image analysis + chat."""
+"""AI Agent routes: image analysis + chat (Google Gemini)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import io
 import json
 import logging
 
-import anthropic
+import google.generativeai as genai
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -35,10 +35,10 @@ Be concise, factual, and specific. When asked about numbers, use the context pro
 Format currency as ₹X,XX,XXX (Indian numbering). Amounts are stored as paise (divide by 100 for rupees)."""
 
 
-def _get_client() -> anthropic.Anthropic:
-    if not settings.anthropic_api_key:
-        raise HTTPException(status_code=503, detail="AI agent not configured — set ANTHROPIC_API_KEY")
-    return anthropic.Anthropic(api_key=settings.anthropic_api_key)
+def _client():
+    if not settings.gemini_api_key:
+        raise HTTPException(status_code=503, detail="AI agent not configured — set GEMINI_API_KEY")
+    genai.configure(api_key=settings.gemini_api_key)
 
 
 # ── POST /ai/analyze ──────────────────────────────────────────────────────────
@@ -57,29 +57,15 @@ async def analyze_image(
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image too large (max 10MB)")
 
-    b64 = base64.standard_b64encode(content).decode()
-    media_type = file.content_type
-
-    client = _get_client()
+    _client()
     try:
-        msg = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            system=ANALYZE_SYSTEM,
-            messages=[{
-                "role": "user",
-                "content": [{
-                    "type": "image",
-                    "source": {"type": "base64", "media_type": media_type, "data": b64},
-                }, {
-                    "type": "text",
-                    "text": "Extract all transactions from this bank statement.",
-                }],
-            }],
-        )
-        raw = msg.content[0].text.strip()
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content([
+            {"mime_type": file.content_type, "data": base64.standard_b64encode(content).decode()},
+            ANALYZE_SYSTEM + "\n\nExtract all transactions from this bank statement.",
+        ])
+        raw = response.text.strip()
 
-        # strip markdown code fences if present
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -88,11 +74,10 @@ async def analyze_image(
         transactions = json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="Could not parse transactions from image")
-    except anthropic.APIError as e:
-        logger.error("Anthropic API error: %s", e)
-        raise HTTPException(status_code=502, detail="AI service error")
+    except Exception as e:
+        logger.error("Gemini API error: %s", e)
+        raise HTTPException(status_code=502, detail=f"AI service error: {e}")
 
-    # Build CSV
     out = io.StringIO()
     writer = csv.DictWriter(
         out,
@@ -128,10 +113,9 @@ def chat(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    """Chat with AI about reconciliation data. Returns streaming response."""
-    client = _get_client()
+    """Chat with AI about reconciliation data. Returns streaming SSE response."""
+    _client()
 
-    # Build context from DB if account_id provided
     context_parts = []
     if body.account_id:
         try:
@@ -191,17 +175,18 @@ def chat(
             logger.warning("Context fetch failed: %s", e)
 
     context = "\n".join(context_parts)
-    system = CHAT_SYSTEM + (f"\n\nCurrent context:\n{context}" if context else "")
+    full_system = CHAT_SYSTEM + (f"\n\nCurrent context:\n{context}" if context else "")
+    prompt = f"{full_system}\n\nUser: {body.message}"
 
     def _stream():
-        with client.messages.stream(
-            model="claude-sonnet-4-6",
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": body.message}],
-        ) as stream:
-            for text_chunk in stream.text_stream:
-                yield f"data: {json.dumps({'text': text_chunk})}\n\n"
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt, stream=True)
+            for chunk in response:
+                if chunk.text:
+                    yield f"data: {json.dumps({'text': chunk.text})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'text': f'Error: {e}'})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(_stream(), media_type="text/event-stream")

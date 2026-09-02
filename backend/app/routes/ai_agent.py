@@ -1,14 +1,14 @@
-"""AI Agent routes: image analysis + chat (Google Gemini)."""
+"""AI Agent routes: image analysis + chat (Google Gemini 2.5 Flash)."""
 
 from __future__ import annotations
 
-import base64
 import csv
 import io
 import json
 import logging
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -22,12 +22,15 @@ from backend.app.settings import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
-ANALYZE_SYSTEM = """You are a bank statement parser. Extract all transactions from the image.
+MODEL = "gemini-2.5-flash"
+
+ANALYZE_PROMPT = """You are a bank statement parser. Extract all transactions from the image.
 Return ONLY a JSON array (no markdown, no explanation) with this exact shape:
 [{"date":"YYYY-MM-DD","description":"...","amount_paise":12345,"direction":"credit|debit","reference":"..."}]
 - amount_paise is the amount in Indian paise (₹1 = 100 paise), always positive integer
 - direction is "credit" for money in, "debit" for money out
-- reference can be empty string if not visible"""
+- reference can be empty string if not visible
+Extract all transactions from this bank statement."""
 
 CHAT_SYSTEM = """You are a financial analyst AI assistant for a bank reconciliation and liquidity forecasting platform.
 You help finance ops teams understand their reconciliation results, spot anomalies, and interpret cash forecasts.
@@ -35,10 +38,10 @@ Be concise, factual, and specific. When asked about numbers, use the context pro
 Format currency as ₹X,XX,XXX (Indian numbering). Amounts are stored as paise (divide by 100 for rupees)."""
 
 
-def _client():
+def _client() -> genai.Client:
     if not settings.gemini_api_key:
         raise HTTPException(status_code=503, detail="AI agent not configured — set GEMINI_API_KEY")
-    genai.configure(api_key=settings.gemini_api_key)
+    return genai.Client(api_key=settings.gemini_api_key)
 
 
 # ── POST /ai/analyze ──────────────────────────────────────────────────────────
@@ -57,13 +60,15 @@ async def analyze_image(
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image too large (max 10MB)")
 
-    _client()
+    client = _client()
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content([
-            {"mime_type": file.content_type, "data": base64.standard_b64encode(content).decode()},
-            ANALYZE_SYSTEM + "\n\nExtract all transactions from this bank statement.",
-        ])
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=[
+                types.Part.from_bytes(data=content, mime_type=file.content_type),
+                ANALYZE_PROMPT,
+            ],
+        )
         raw = response.text.strip()
 
         if raw.startswith("```"):
@@ -93,11 +98,7 @@ async def analyze_image(
             "reference": t.get("reference", ""),
         })
 
-    return {
-        "transactions": transactions,
-        "count": len(transactions),
-        "csv": out.getvalue(),
-    }
+    return {"transactions": transactions, "count": len(transactions), "csv": out.getvalue()}
 
 
 # ── POST /ai/chat ─────────────────────────────────────────────────────────────
@@ -114,7 +115,7 @@ def chat(
     user: dict = Depends(get_current_user),
 ):
     """Chat with AI about reconciliation data. Returns streaming SSE response."""
-    _client()
+    client = _client()
 
     context_parts = []
     if body.account_id:
@@ -175,14 +176,18 @@ def chat(
             logger.warning("Context fetch failed: %s", e)
 
     context = "\n".join(context_parts)
-    full_system = CHAT_SYSTEM + (f"\n\nCurrent context:\n{context}" if context else "")
-    prompt = f"{full_system}\n\nUser: {body.message}"
+    prompt = (
+        CHAT_SYSTEM
+        + (f"\n\nCurrent context:\n{context}" if context else "")
+        + f"\n\nUser: {body.message}"
+    )
 
     def _stream():
         try:
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(prompt, stream=True)
-            for chunk in response:
+            for chunk in client.models.generate_content_stream(
+                model=MODEL,
+                contents=prompt,
+            ):
                 if chunk.text:
                     yield f"data: {json.dumps({'text': chunk.text})}\n\n"
         except Exception as e:

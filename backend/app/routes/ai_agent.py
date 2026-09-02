@@ -22,8 +22,8 @@ from backend.app.settings import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
-VISION_MODEL = "llama-3.2-11b-vision-preview"
-CHAT_MODEL   = "llama-3.3-70b-versatile"
+VISION_MODEL = "qwen/qwen3.8-27b"
+CHAT_MODEL   = "groq/compound"
 
 ANALYZE_PROMPT = """You are a bank statement parser. Extract all transactions from the image.
 Return ONLY a JSON array (no markdown, no explanation) with this exact shape:

@@ -7,115 +7,46 @@ import LoginPage from "./pages/LoginPage";
 import ReconciliationPage from "./pages/ReconciliationPage";
 import ForecastPage from "./pages/ForecastPage";
 import AlertsPage from "./pages/AlertsPage";
+const DarkParticle = lazy(() => import("./themes/DarkParticle"));
 
 const UploadPage      = lazy(() => import("./pages/UploadPage"));
 const ChatPage        = lazy(() => import("./pages/ChatPage"));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
 
-const DarkParticle  = lazy(() => import("./themes/DarkParticle"));
-const LightGlass    = lazy(() => import("./themes/LightGlass"));
-const CyberpunkGrid = lazy(() => import("./themes/CyberpunkGrid"));
+// Single design token set — dark particle field
+const T = {
+  accent:    "#388bfd",
+  surface:   "#0f1117",
+  surface1:  "#161b22",
+  surface2:  "rgba(255,255,255,0.05)",
+  hairline:  "rgba(255,255,255,0.07)",
+  ink:       "#e2e8f0",
+  inkMuted:  "#94a3b8",
+  inkSubtle: "#475569",
+  success:   "#22c55e",
+  danger:    "#f87171",
+  warning:   "#f59e0b",
+  sidebarBg: "rgba(13,17,23,0.85)",
+};
 
-const THEME_SCENES = { dark: DarkParticle, light: LightGlass, cyber: CyberpunkGrid };
-
+// Sync CSS custom properties once at load
 const CSS_VARS = {
-  dark: {
-    "--canvas":        "#0f1117",
-    "--surface-1":     "#161b22",
-    "--surface-2":     "#1c2128",
-    "--surface-3":     "#21262d",
-    "--hairline":      "#30363d",
-    "--hairline-soft": "#21262d",
-    "--ink":           "#e6edf3",
-    "--ink-muted":     "#8b949e",
-    "--ink-subtle":    "#484f58",
-    "--accent":        "#388bfd",
-    "--accent-hover":  "#58a6ff",
-    "--success":       "#3fb950",
-    "--warning":       "#d29922",
-    "--danger":        "#f85149",
-  },
-  light: {
-    "--canvas":        "#eef2ff",
-    "--surface-1":     "rgba(255,255,255,0.85)",
-    "--surface-2":     "rgba(255,255,255,0.6)",
-    "--surface-3":     "rgba(255,255,255,0.4)",
-    "--hairline":      "rgba(99,102,241,0.2)",
-    "--hairline-soft": "rgba(99,102,241,0.08)",
-    "--ink":           "#1e1b4b",
-    "--ink-muted":     "#6366f1",
-    "--ink-subtle":    "#818cf8",
-    "--accent":        "#6366f1",
-    "--accent-hover":  "#818cf8",
-    "--success":       "#16a34a",
-    "--warning":       "#d97706",
-    "--danger":        "#dc2626",
-  },
-  cyber: {
-    "--canvas":        "#000000",
-    "--surface-1":     "#0a0a0a",
-    "--surface-2":     "rgba(0,255,136,0.06)",
-    "--surface-3":     "rgba(0,255,136,0.1)",
-    "--hairline":      "rgba(0,255,136,0.2)",
-    "--hairline-soft": "rgba(0,255,136,0.07)",
-    "--ink":           "#00ff88",
-    "--ink-muted":     "#00cfff",
-    "--ink-subtle":    "#006644",
-    "--accent":        "#00ff88",
-    "--accent-hover":  "#33ffaa",
-    "--success":       "#00ff88",
-    "--warning":       "#ffcc00",
-    "--danger":        "#ff4444",
-  },
+  "--canvas":        "#0f1117",
+  "--surface-1":     "#161b22",
+  "--surface-2":     "#1c2128",
+  "--surface-3":     "#21262d",
+  "--hairline":      "#30363d",
+  "--hairline-soft": "#21262d",
+  "--ink":           "#e6edf3",
+  "--ink-muted":     "#8b949e",
+  "--ink-subtle":    "#484f58",
+  "--accent":        "#388bfd",
+  "--accent-hover":  "#58a6ff",
+  "--success":       "#3fb950",
+  "--warning":       "#d29922",
+  "--danger":        "#f85149",
 };
-
-const THEME_VARS = {
-  dark: {
-    accent: "#388bfd",
-    surface: "#0f1117",
-    surface1: "#161b22",
-    surface2: "rgba(255,255,255,0.05)",
-    hairline: "rgba(255,255,255,0.07)",
-    ink: "#e2e8f0",
-    inkMuted: "#94a3b8",
-    inkSubtle: "#475569",
-    success: "#22c55e",
-    danger: "#f87171",
-    warning: "#f59e0b",
-    sidebarBg: "rgba(13,17,23,0.85)",
-    card: "rgba(255,255,255,0.04)",
-  },
-  light: {
-    accent: "#6366f1",
-    surface: "#eef2ff",
-    surface1: "rgba(255,255,255,0.8)",
-    surface2: "rgba(255,255,255,0.5)",
-    hairline: "rgba(99,102,241,0.12)",
-    ink: "#1e1b4b",
-    inkMuted: "#6366f1",
-    inkSubtle: "#818cf8",
-    success: "#16a34a",
-    danger: "#dc2626",
-    warning: "#d97706",
-    sidebarBg: "#eef2ff",
-    card: "rgba(255,255,255,0.7)",
-  },
-  cyber: {
-    accent: "#00ff88",
-    surface: "#000000",
-    surface1: "#0a0a0a",
-    surface2: "rgba(0,255,136,0.05)",
-    hairline: "rgba(0,255,136,0.12)",
-    ink: "#00ff88",
-    inkMuted: "#00cfff",
-    inkSubtle: "#005533",
-    success: "#00ff88",
-    danger: "#ff4444",
-    warning: "#ffcc00",
-    sidebarBg: "rgba(0,0,0,0.9)",
-    card: "rgba(0,255,136,0.04)",
-  },
-};
+Object.entries(CSS_VARS).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
 
 const NAV = [
   { key: "reconciliation", label: "Reconciliation", path: "/dashboard" },
@@ -132,7 +63,7 @@ const fmtBalance = (p) =>
     notation: "compact", maximumFractionDigits: 1,
   }).format(p / 100);
 
-function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, health, user, onLogout }) {
+function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
   const activeAccount = accounts.find(a => a.id === accountId);
@@ -140,20 +71,20 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
   return (
     <aside style={{
       width: 200, flexShrink: 0,
-      background: t.sidebarBg,
+      background: T.sidebarBg,
       backdropFilter: "blur(20px)",
-      borderRight: `1px solid ${t.hairline}`,
+      borderRight: `1px solid ${T.hairline}`,
       display: "flex", flexDirection: "column",
     }}>
-      <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${t.hairline}` }}>
-        <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.03em", color: t.ink }}>
-          recon<span style={{ color: t.accent }}>·</span>forecast
+      <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${T.hairline}` }}>
+        <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.03em", color: T.ink }}>
+          recon<span style={{ color: T.accent }}>·</span>forecast
         </div>
-        <div style={{ fontSize: 11, color: t.inkSubtle, marginTop: 2 }}>Liquidity Intelligence</div>
+        <div style={{ fontSize: 11, color: T.inkSubtle, marginTop: 2 }}>Liquidity Intelligence</div>
       </div>
 
       <div style={{ padding: "12px 12px 8px" }}>
-        <div style={{ fontSize: 11, color: t.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
           Account
         </div>
         <select
@@ -161,8 +92,8 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
           onChange={e => setAccountId(e.target.value)}
           style={{
             width: "100%", padding: "6px 8px",
-            background: t.surface2, border: `1px solid ${t.hairline}`,
-            borderRadius: 8, color: t.ink, fontSize: 13,
+            background: T.surface2, border: `1px solid ${T.hairline}`,
+            borderRadius: 8, color: T.ink, fontSize: 13,
           }}
         >
           {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -171,7 +102,7 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
           <div style={{
             fontSize: 11, marginTop: 5, fontVariantNumeric: "tabular-nums",
             color: activeAccount.current_balance_paise >= activeAccount.min_threshold_paise
-              ? t.success : t.danger,
+              ? T.success : T.danger,
           }}>
             {fmtBalance(activeAccount.current_balance_paise)}
             {activeAccount.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
@@ -191,10 +122,10 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 width: "100%", textAlign: "left",
                 padding: "7px 10px", marginBottom: 2, border: "none",
-                borderLeft: `2px solid ${active ? t.accent : "transparent"}`,
+                borderLeft: `2px solid ${active ? T.accent : "transparent"}`,
                 borderRadius: 8,
-                background: active ? t.surface2 : "transparent",
-                color: active ? t.ink : t.inkMuted,
+                background: active ? T.surface2 : "transparent",
+                color: active ? T.ink : T.inkMuted,
                 fontSize: 13, fontWeight: active ? 500 : 400, cursor: "pointer",
                 transition: "background 0.15s, color 0.15s",
               }}
@@ -203,7 +134,7 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
               {n.key === "alerts" && alertCount > 0 && (
                 <span style={{
                   fontSize: 10, fontWeight: 600, minWidth: 18,
-                  background: t.danger, color: "#fff",
+                  background: T.danger, color: "#fff",
                   borderRadius: 9999, padding: "1px 5px",
                 }}>
                   {alertCount}
@@ -215,16 +146,16 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
       </nav>
 
       {health && (
-        <div style={{ padding: "10px 14px", borderTop: `1px solid ${t.hairline}`, fontSize: 11, color: t.inkSubtle }}>
+        <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 11, color: T.inkSubtle }}>
           {["db", "dynamo", "sns"].map(s => (
             <span key={s} style={{ marginRight: 8 }}>
-              <span style={{ color: health[s] === "ok" ? t.success : t.danger }}>●</span> {s}
+              <span style={{ color: health[s] === "ok" ? T.success : T.danger }}>●</span> {s}
             </span>
           ))}
         </div>
       )}
 
-      <div style={{ padding: "10px 14px", borderTop: `1px solid ${t.hairline}`, fontSize: 12, color: t.inkMuted }}>
+      <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 12, color: T.inkMuted }}>
         <div style={{ marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {user?.email}
         </div>
@@ -232,8 +163,8 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
           onClick={onLogout}
           style={{
             padding: "5px 10px", background: "transparent",
-            border: `1px solid ${t.hairline}`, borderRadius: 7,
-            color: t.inkSubtle, fontSize: 12, cursor: "pointer",
+            border: `1px solid ${T.hairline}`, borderRadius: 7,
+            color: T.inkSubtle, fontSize: 12, cursor: "pointer",
           }}
         >
           Sign out
@@ -243,7 +174,7 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
   );
 }
 
-function Dashboard({ themeId, t, user, onLogout }) {
+function Dashboard({ user, onLogout }) {
   const location = useLocation();
   const [accounts, setAccounts]     = useState([]);
   const [accountId, setAccountId]   = useState("");
@@ -271,28 +202,20 @@ function Dashboard({ themeId, t, user, onLogout }) {
       .catch(() => setBatchId(null));
   }, [accountId]);
 
-  const Scene = THEME_SCENES[themeId];
-
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", position: "relative" }}>
-      {themeId !== "dark" && (
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      )}
-      {themeId === "dark" && (
-        <div style={{ position: "fixed", inset: 0, background: "#0f1117", zIndex: 0 }} />
-      )}
+      <Suspense fallback={<div style={{ position: "fixed", inset: 0, background: "#080810", zIndex: 0 }} />}>
+        <DarkParticle />
+      </Suspense>
 
       <div style={{ position: "relative", zIndex: 10, display: "flex", width: "100%", height: "100%" }}>
         <Sidebar
-          themeId={themeId} t={t}
           accounts={accounts} accountId={accountId} setAccountId={setAccountId}
           alertCount={alertCount} health={health} user={user} onLogout={onLogout}
         />
 
-        <main style={{ flex: 1, overflowY: "auto", color: t.ink, position: "relative" }}>
-          <Suspense fallback={<div style={{ padding: 32, color: t.inkMuted }}>Loading…</div>}>
+        <main style={{ flex: 1, overflowY: "auto", color: T.ink, position: "relative" }}>
+          <Suspense fallback={<div style={{ padding: 32, color: T.inkMuted }}>Loading…</div>}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -304,11 +227,11 @@ function Dashboard({ themeId, t, user, onLogout }) {
               >
                 <Routes location={location}>
                   <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />
-                  <Route path="/forecast"     element={<ForecastPage accountId={accountId} accent={t.accent} />} />
-                  <Route path="/alerts"       element={<AlertsPage />} />
-                  <Route path="/upload"       element={<UploadPage theme={t} accountId={accountId} />} />
-                  <Route path="/ai"           element={<ChatPage theme={t} accountId={accountId} />} />
-                  <Route path="/connections"  element={<ConnectionsPage theme={t} />} />
+                  <Route path="/forecast"    element={<ForecastPage accountId={accountId} accent={T.accent} />} />
+                  <Route path="/alerts"      element={<AlertsPage />} />
+                  <Route path="/upload"      element={<UploadPage theme={T} accountId={accountId} />} />
+                  <Route path="/ai"          element={<ChatPage theme={T} accountId={accountId} />} />
+                  <Route path="/connections" element={<ConnectionsPage theme={T} />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>
@@ -320,21 +243,12 @@ function Dashboard({ themeId, t, user, onLogout }) {
 }
 
 export default function App() {
-  const [user, setUser]       = useState(() => {
+  const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem("user")); } catch { return null; }
   });
-  const [themeId, setThemeId] = useState(() => localStorage.getItem("theme") || "dark");
-  const t = THEME_VARS[themeId] || THEME_VARS.dark;
 
-  useEffect(() => {
-    const vars = CSS_VARS[themeId] || CSS_VARS.dark;
-    const root = document.documentElement;
-    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
-  }, [themeId]);
-
-  function handleLogin(userData, chosenTheme) {
+  function handleLogin(userData) {
     setUser(userData);
-    setThemeId(chosenTheme);
   }
 
   function handleLogout() {
@@ -348,19 +262,11 @@ export default function App() {
       <Routes>
         <Route
           path="/login"
-          element={
-            user
-              ? <Navigate to="/dashboard" replace />
-              : <LoginPage onLogin={handleLogin} />
-          }
+          element={user ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} />}
         />
         <Route
           path="/dashboard/*"
-          element={
-            user
-              ? <Dashboard themeId={themeId} t={t} user={user} onLogout={handleLogout} />
-              : <Navigate to="/login" replace />
-          }
+          element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}
         />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>

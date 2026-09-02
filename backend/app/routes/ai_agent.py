@@ -22,7 +22,7 @@ from backend.app.settings import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.6-flash"
 
 ANALYZE_PROMPT = """You are a bank statement parser. Extract all transactions from the image.
 Return ONLY a JSON array (no markdown, no explanation) with this exact shape:

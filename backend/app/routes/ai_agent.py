@@ -1,14 +1,14 @@
-"""AI Agent routes: image analysis + chat (Google Gemini 2.5 Flash)."""
+"""AI Agent routes: image analysis + chat (Groq)."""
 
 from __future__ import annotations
 
+import base64
 import csv
 import io
 import json
 import logging
 
-from google import genai
-from google.genai import types
+from groq import Groq
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -22,15 +22,15 @@ from backend.app.settings import settings
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
-MODEL = "gemini-3.6-flash"
+VISION_MODEL = "llama-3.2-11b-vision-preview"
+CHAT_MODEL   = "llama-3.3-70b-versatile"
 
 ANALYZE_PROMPT = """You are a bank statement parser. Extract all transactions from the image.
 Return ONLY a JSON array (no markdown, no explanation) with this exact shape:
 [{"date":"YYYY-MM-DD","description":"...","amount_paise":12345,"direction":"credit|debit","reference":"..."}]
 - amount_paise is the amount in Indian paise (₹1 = 100 paise), always positive integer
 - direction is "credit" for money in, "debit" for money out
-- reference can be empty string if not visible
-Extract all transactions from this bank statement."""
+- reference can be empty string if not visible"""
 
 CHAT_SYSTEM = """You are a financial analyst AI assistant for a bank reconciliation and liquidity forecasting platform.
 You help finance ops teams understand their reconciliation results, spot anomalies, and interpret cash forecasts.
@@ -38,10 +38,10 @@ Be concise, factual, and specific. When asked about numbers, use the context pro
 Format currency as ₹X,XX,XXX (Indian numbering). Amounts are stored as paise (divide by 100 for rupees)."""
 
 
-def _client() -> genai.Client:
-    if not settings.gemini_api_key:
-        raise HTTPException(status_code=503, detail="AI agent not configured — set GEMINI_API_KEY")
-    return genai.Client(api_key=settings.gemini_api_key)
+def _client() -> Groq:
+    if not settings.groq_api_key:
+        raise HTTPException(status_code=503, detail="AI agent not configured — set GROQ_API_KEY")
+    return Groq(api_key=settings.groq_api_key)
 
 
 # ── POST /ai/analyze ──────────────────────────────────────────────────────────
@@ -60,16 +60,22 @@ async def analyze_image(
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image too large (max 10MB)")
 
+    b64 = base64.standard_b64encode(content).decode()
     client = _client()
+
     try:
-        response = client.models.generate_content(
-            model=MODEL,
-            contents=[
-                types.Part.from_bytes(data=content, mime_type=file.content_type),
-                ANALYZE_PROMPT,
-            ],
+        response = client.chat.completions.create(
+            model=VISION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:{file.content_type};base64,{b64}"}},
+                    {"type": "text", "text": ANALYZE_PROMPT},
+                ],
+            }],
+            max_tokens=4096,
         )
-        raw = response.text.strip()
+        raw = response.choices[0].message.content.strip()
 
         if raw.startswith("```"):
             raw = raw.split("```")[1]
@@ -80,7 +86,7 @@ async def analyze_image(
     except json.JSONDecodeError:
         raise HTTPException(status_code=422, detail="Could not parse transactions from image")
     except Exception as e:
-        logger.error("Gemini API error: %s", e)
+        logger.error("Groq API error: %s", e)
         raise HTTPException(status_code=502, detail=f"AI service error: {e}")
 
     out = io.StringIO()
@@ -176,20 +182,23 @@ def chat(
             logger.warning("Context fetch failed: %s", e)
 
     context = "\n".join(context_parts)
-    prompt = (
-        CHAT_SYSTEM
-        + (f"\n\nCurrent context:\n{context}" if context else "")
-        + f"\n\nUser: {body.message}"
-    )
+    system = CHAT_SYSTEM + (f"\n\nCurrent context:\n{context}" if context else "")
 
     def _stream():
         try:
-            for chunk in client.models.generate_content_stream(
-                model=MODEL,
-                contents=prompt,
-            ):
-                if chunk.text:
-                    yield f"data: {json.dumps({'text': chunk.text})}\n\n"
+            stream = client.chat.completions.create(
+                model=CHAT_MODEL,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": body.message},
+                ],
+                max_tokens=1024,
+                stream=True,
+            )
+            for chunk in stream:
+                text_chunk = chunk.choices[0].delta.content or ""
+                if text_chunk:
+                    yield f"data: {json.dumps({'text': text_chunk})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'text': f'Error: {e}'})}\n\n"
         yield "data: [DONE]\n\n"

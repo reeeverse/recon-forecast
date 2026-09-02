@@ -1,16 +1,29 @@
-// TODO Day 5 (Person A): thin fetch wrapper, base URL from VITE_API_BASE, bearer token injection
-const BASE = import.meta.env.VITE_API_BASE ?? '/api/v1'
-const TOKEN = import.meta.env.VITE_DASHBOARD_TOKEN ?? ''
+const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
 
 export async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TOKEN}`,
-      ...options.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
-  return res.json()
+  const { raw, ...fetchOpts } = options;
+  const token = localStorage.getItem("token");
+
+  const headers = {};
+  if (!(fetchOpts.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  Object.assign(headers, fetchOpts.headers);
+
+  const res = await fetch(`${BASE}${path}`, { ...fetchOpts, headers });
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const j = await res.json();
+      detail = j.detail || detail;
+    } catch {}
+    throw new Error(detail);
+  }
+
+  if (res.status === 204) return null;
+  return res.json();
 }

@@ -15,7 +15,7 @@ function MetricCard({ label, value, sub, color }) {
       flex: 1,
     }}>
       <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 6 }}>{label}</div>
-      <div className="amount" style={{ fontSize: 22, fontWeight: 600, color: color ?? 'var(--ink)' }}>
+      <div className="amount" style={{ fontSize: 22, fontWeight: 600, color: color ?? 'var(--ink)', letterSpacing: "-0.02em", lineHeight: 1.1 }}>
         {value}
       </div>
       {sub && <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginTop: 4 }}>{sub}</div>}

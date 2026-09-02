@@ -108,7 +108,7 @@ export default function LoginPage({ onLogin }) {
                 padding: "10px 16px",
                 background: t.id === themeId ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.05)",
                 border: t.id === themeId ? `1px solid ${t.accent}` : "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 10, cursor: "pointer", transition: "all 0.2s",
+                borderRadius: 10, cursor: "pointer", transition: "background 0.15s, border-color 0.15s",
                 color: theme.text,
               }}
             >
@@ -129,10 +129,10 @@ export default function LoginPage({ onLogin }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={themeId}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ opacity: 0, y: 16, scale: 0.97, filter: "blur(8px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -8, scale: 0.98, filter: "blur(4px)" }}
+            transition={{ type: "spring", bounce: 0, duration: 0.4 }}
             style={{
               width: "100%", maxWidth: 400,
               background: theme.card,
@@ -165,7 +165,7 @@ export default function LoginPage({ onLogin }) {
                     flex: 1, padding: "8px 0", border: "none", borderRadius: 8,
                     background: mode === m ? theme.accent : "transparent",
                     color: mode === m ? "#fff" : theme.subtext,
-                    fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "all 0.2s",
+                    fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "background 0.15s, color 0.15s",
                   }}
                 >
                   {m === "login" ? "Sign in" : "Sign up"}

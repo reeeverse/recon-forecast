@@ -36,12 +36,14 @@ html, body, #root {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-optical-sizing: auto;
 }
 
 .amount {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.3px;
+  line-height: 1.1;
 }
 
 button {
@@ -54,15 +56,31 @@ button {
   background: var(--surface-2);
   color: var(--ink);
   padding: 5px 12px;
-  transition: background 0.1s;
+  transition: background 0.1s, color 0.1s;
 }
 button:hover { background: var(--surface-3); }
+button:active { transform: scale(0.97); transition: transform 80ms ease-out; }
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
 button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --surface-1: #1a1f27;
+    --surface-2: #1e2430;
+  }
+}
 
 select, input {
   font-family: inherit;

@@ -93,6 +93,13 @@ function ConnectingLines() {
 }
 
 export default function DarkParticle() {
+  const reducedMotion = typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reducedMotion) {
+    return <div style={{ position: "fixed", inset: 0, background: "#080810", zIndex: 0 }} />;
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#080810", zIndex: 0 }}>
       <Canvas camera={{ position: [0, 0, 30], fov: 60 }}>

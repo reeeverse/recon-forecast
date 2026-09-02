@@ -82,6 +82,13 @@ function FloatingData() {
 }
 
 export default function CyberpunkGrid() {
+  const reducedMotion = typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reducedMotion) {
+    return <div style={{ position: "fixed", inset: 0, background: "#000000", zIndex: 0 }} />;
+  }
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "#000000", zIndex: 0 }}>
       <Canvas camera={{ position: [0, 5, 15], fov: 65 }}>

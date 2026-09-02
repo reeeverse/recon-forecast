@@ -42,7 +42,7 @@ function Modal({ onClose, onSave, theme }) {
         initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
+        transition={{ type: "spring", bounce: 0, duration: 0.35 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: 440, background: "#161b22",
@@ -190,6 +190,7 @@ export default function ConnectionsPage({ theme }) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -20 }}
+                transition={{ type: "spring", bounce: 0, duration: 0.3 }}
                 style={{
                   padding: 20,
                   background: "rgba(255,255,255,0.03)",

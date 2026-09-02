@@ -46,7 +46,7 @@ const THEME_VARS = {
     success: "#16a34a",
     danger: "#dc2626",
     warning: "#d97706",
-    sidebarBg: "rgba(238,242,255,0.9)",
+    sidebarBg: "#eef2ff",
     card: "rgba(255,255,255,0.7)",
   },
   cyber: {
@@ -193,6 +193,7 @@ function Sidebar({ themeId, t, accounts, accountId, setAccountId, alertCount, he
 }
 
 function Dashboard({ themeId, t, user, onLogout }) {
+  const location = useLocation();
   const [accounts, setAccounts]     = useState([]);
   const [accountId, setAccountId]   = useState("");
   const [batchId, setBatchId]       = useState(null);
@@ -239,16 +240,27 @@ function Dashboard({ themeId, t, user, onLogout }) {
           alertCount={alertCount} health={health} user={user} onLogout={onLogout}
         />
 
-        <main style={{ flex: 1, overflowY: "auto", color: t.ink }}>
+        <main style={{ flex: 1, overflowY: "auto", color: t.ink, position: "relative" }}>
           <Suspense fallback={<div style={{ padding: 32, color: t.inkMuted }}>Loading…</div>}>
-            <Routes>
-              <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />
-              <Route path="/forecast"     element={<ForecastPage accountId={accountId} />} />
-              <Route path="/alerts"       element={<AlertsPage />} />
-              <Route path="/upload"       element={<UploadPage theme={t} accountId={accountId} />} />
-              <Route path="/ai"           element={<ChatPage theme={t} accountId={accountId} />} />
-              <Route path="/connections"  element={<ConnectionsPage theme={t} />} />
-            </Routes>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ type: "spring", bounce: 0, duration: 0.25 }}
+                style={{ height: "100%" }}
+              >
+                <Routes location={location}>
+                  <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />
+                  <Route path="/forecast"     element={<ForecastPage accountId={accountId} />} />
+                  <Route path="/alerts"       element={<AlertsPage />} />
+                  <Route path="/upload"       element={<UploadPage theme={t} accountId={accountId} />} />
+                  <Route path="/ai"           element={<ChatPage theme={t} accountId={accountId} />} />
+                  <Route path="/connections"  element={<ConnectionsPage theme={t} />} />
+                </Routes>
+              </motion.div>
+            </AnimatePresence>
           </Suspense>
         </main>
       </div>

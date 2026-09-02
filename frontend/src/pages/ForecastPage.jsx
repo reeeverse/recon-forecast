@@ -3,7 +3,7 @@ import { apiFetch } from '../api'
 import CashPositionBar from '../components/CashPositionBar'
 import ForecastChart from '../components/ForecastChart'
 
-export default function ForecastPage({ accountId }) {
+export default function ForecastPage({ accountId, accent }) {
   const [threshold, setThreshold] = useState(0)
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function ForecastPage({ accountId }) {
         <CashPositionBar accountId={accountId} />
       </div>
       <div>
-        <ForecastChart accountId={accountId} threshold={threshold} />
+        <ForecastChart accountId={accountId} threshold={threshold} accent={accent} />
       </div>
     </div>
   )

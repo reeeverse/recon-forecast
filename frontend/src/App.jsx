@@ -18,6 +18,57 @@ const CyberpunkGrid = lazy(() => import("./themes/CyberpunkGrid"));
 
 const THEME_SCENES = { dark: DarkParticle, light: LightGlass, cyber: CyberpunkGrid };
 
+const CSS_VARS = {
+  dark: {
+    "--canvas":        "#0f1117",
+    "--surface-1":     "#161b22",
+    "--surface-2":     "#1c2128",
+    "--surface-3":     "#21262d",
+    "--hairline":      "#30363d",
+    "--hairline-soft": "#21262d",
+    "--ink":           "#e6edf3",
+    "--ink-muted":     "#8b949e",
+    "--ink-subtle":    "#484f58",
+    "--accent":        "#388bfd",
+    "--accent-hover":  "#58a6ff",
+    "--success":       "#3fb950",
+    "--warning":       "#d29922",
+    "--danger":        "#f85149",
+  },
+  light: {
+    "--canvas":        "#eef2ff",
+    "--surface-1":     "rgba(255,255,255,0.85)",
+    "--surface-2":     "rgba(255,255,255,0.6)",
+    "--surface-3":     "rgba(255,255,255,0.4)",
+    "--hairline":      "rgba(99,102,241,0.2)",
+    "--hairline-soft": "rgba(99,102,241,0.08)",
+    "--ink":           "#1e1b4b",
+    "--ink-muted":     "#6366f1",
+    "--ink-subtle":    "#818cf8",
+    "--accent":        "#6366f1",
+    "--accent-hover":  "#818cf8",
+    "--success":       "#16a34a",
+    "--warning":       "#d97706",
+    "--danger":        "#dc2626",
+  },
+  cyber: {
+    "--canvas":        "#000000",
+    "--surface-1":     "#0a0a0a",
+    "--surface-2":     "rgba(0,255,136,0.06)",
+    "--surface-3":     "rgba(0,255,136,0.1)",
+    "--hairline":      "rgba(0,255,136,0.2)",
+    "--hairline-soft": "rgba(0,255,136,0.07)",
+    "--ink":           "#00ff88",
+    "--ink-muted":     "#00cfff",
+    "--ink-subtle":    "#006644",
+    "--accent":        "#00ff88",
+    "--accent-hover":  "#33ffaa",
+    "--success":       "#00ff88",
+    "--warning":       "#ffcc00",
+    "--danger":        "#ff4444",
+  },
+};
+
 const THEME_VARS = {
   dark: {
     accent: "#388bfd",
@@ -249,11 +300,11 @@ function Dashboard({ themeId, t, user, onLogout }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", bounce: 0, duration: 0.25 }}
-                style={{ height: "100%" }}
+                style={{ minHeight: "100%", padding: "28px 32px", boxSizing: "border-box" }}
               >
                 <Routes location={location}>
                   <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />
-                  <Route path="/forecast"     element={<ForecastPage accountId={accountId} />} />
+                  <Route path="/forecast"     element={<ForecastPage accountId={accountId} accent={t.accent} />} />
                   <Route path="/alerts"       element={<AlertsPage />} />
                   <Route path="/upload"       element={<UploadPage theme={t} accountId={accountId} />} />
                   <Route path="/ai"           element={<ChatPage theme={t} accountId={accountId} />} />
@@ -274,6 +325,12 @@ export default function App() {
   });
   const [themeId, setThemeId] = useState(() => localStorage.getItem("theme") || "dark");
   const t = THEME_VARS[themeId] || THEME_VARS.dark;
+
+  useEffect(() => {
+    const vars = CSS_VARS[themeId] || CSS_VARS.dark;
+    const root = document.documentElement;
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+  }, [themeId]);
 
   function handleLogin(userData, chosenTheme) {
     setUser(userData);

@@ -1,20 +1,20 @@
-const STYLES = {
-  auto_matched:     { background: '#0d2b0d', color: '#3fb950' },
-  review:           { background: '#2b2200', color: '#d29922' },
-  unmatched_bank:   { background: '#2b0d0d', color: '#f85149' },
-  unmatched_ledger: { background: '#2b0d0d', color: '#f85149' },
-  timing_diff:      { background: '#0d1a2b', color: '#388bfd' },
-  amount_diff:      { background: '#2b2200', color: '#d29922' },
-  duplicate:        { background: '#1a0d2b', color: '#bc8cff' },
-  ambiguous:        { background: '#2b2200', color: '#d29922' },
-  none:             { background: '#1c2128', color: '#8b949e' },
-  critical:         { background: '#2b0505', color: '#f85149' },
-  high:             { background: '#2b0d0d', color: '#f85149' },
-  medium:           { background: '#2b2200', color: '#d29922' },
-  low:              { background: '#0d2b0d', color: '#3fb950' },
-  ok:               { background: '#0d2b0d', color: '#3fb950' },
-  error:            { background: '#2b0d0d', color: '#f85149' },
-  not_configured:   { background: '#1c2128', color: '#8b949e' },
+const KIND_COLOR = {
+  auto_matched:     'var(--success)',
+  review:           'var(--warning)',
+  unmatched_bank:   'var(--danger)',
+  unmatched_ledger: 'var(--danger)',
+  timing_diff:      'var(--accent)',
+  amount_diff:      'var(--warning)',
+  duplicate:        'var(--accent)',
+  ambiguous:        'var(--warning)',
+  none:             'var(--ink-subtle)',
+  critical:         'var(--danger)',
+  high:             'var(--danger)',
+  medium:           'var(--warning)',
+  low:              'var(--success)',
+  ok:               'var(--success)',
+  error:            'var(--danger)',
+  not_configured:   'var(--ink-subtle)',
 }
 
 const LABELS = {
@@ -24,17 +24,18 @@ const LABELS = {
 }
 
 export default function Badge({ kind }) {
-  const s = STYLES[kind] ?? STYLES.none
+  const color = KIND_COLOR[kind] ?? 'var(--ink-subtle)'
   const label = LABELS[kind] ?? kind?.replace(/_/g, ' ')
   return (
     <span style={{
-      ...s,
       fontSize: 11,
-      fontWeight: 500,
+      fontWeight: 600,
       padding: '2px 7px',
-      borderRadius: 4,
+      borderRadius: 'var(--radius-sm)',
       whiteSpace: 'nowrap',
       textTransform: 'capitalize',
+      color,
+      border: `1px solid ${color}`,
     }}>
       {label}
     </span>

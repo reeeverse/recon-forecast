@@ -38,7 +38,7 @@ const CustomTooltip = ({ active, payload, label, threshold }) => {
   )
 }
 
-export default function ForecastChart({ accountId, threshold }) {
+export default function ForecastChart({ accountId, threshold, accent = "#388bfd" }) {
   const [points, setPoints] = useState(null)
   const [err, setErr] = useState(null)
 
@@ -92,8 +92,8 @@ export default function ForecastChart({ accountId, threshold }) {
         <AreaChart data={points} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
           <defs>
             <linearGradient id="fcGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#388bfd" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#388bfd" stopOpacity={0} />
+              <stop offset="5%" stopColor={accent} stopOpacity={0.15} />
+              <stop offset="95%" stopColor={accent} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--hairline-soft)" vertical={false} />
@@ -123,10 +123,10 @@ export default function ForecastChart({ accountId, threshold }) {
           <Area
             type="monotone"
             dataKey="predicted_close_paise"
-            stroke="#388bfd" strokeWidth={2}
+            stroke={accent} strokeWidth={2}
             fill="url(#fcGrad)"
             dot={false}
-            activeDot={{ r: 4, fill: '#388bfd', stroke: 'var(--canvas)', strokeWidth: 2 }}
+            activeDot={{ r: 4, fill: accent, stroke: 'var(--canvas)', strokeWidth: 2 }}
           />
           {/* low band */}
           <Area

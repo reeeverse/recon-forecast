@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.app.auth import require_dashboard_token
+from backend.app.auth import get_current_user
 from backend.app.db import get_db
 from backend.app.schemas import (
     BankSide,
@@ -27,7 +27,7 @@ from reconciliation.writer import (
 router = APIRouter(
     prefix="/api/v1/reconciliation",
     tags=["reconciliation"],
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 
 

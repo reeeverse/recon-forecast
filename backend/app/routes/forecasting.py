@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.app.auth import require_dashboard_token, require_ingest_secret
+from backend.app.auth import get_current_user, require_ingest_secret
 from backend.app.db import get_db
 from backend.app.schemas import (
     AccountSummary,
@@ -274,7 +274,7 @@ def _put_dynamo_snapshot(
 @router.get(
     "/accounts",
     response_model=list[AccountSummary],
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 def list_accounts(db: Session = Depends(get_db)):
     rows = db.execute(
@@ -321,7 +321,7 @@ def list_accounts(db: Session = Depends(get_db)):
 @router.get(
     "/accounts/{account_id}/cash-position",
     response_model=CashPositionResponse,
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_cash_position(account_id: str, db: Session = Depends(get_db)):
     account = db.execute(
@@ -354,7 +354,7 @@ def get_cash_position(account_id: str, db: Session = Depends(get_db)):
 @router.get(
     "/accounts/{account_id}/forecast",
     response_model=ForecastResponse,
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_forecast(account_id: str, db: Session = Depends(get_db)):
     account = db.execute(
@@ -419,7 +419,7 @@ def get_forecast(account_id: str, db: Session = Depends(get_db)):
 @router.get(
     "/alerts",
     response_model=AlertsResponse,
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 def get_alerts(
     status: str | None = Query(default=None),

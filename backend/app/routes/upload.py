@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from backend.app.auth import require_dashboard_token
+from backend.app.auth import get_current_user
 from backend.app.db import get_db
 from backend.app.schemas import PresignRequest, PresignResponse, UploadResponse
 from backend.app.settings import settings
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/upload",
     tags=["upload"],
-    dependencies=[Depends(require_dashboard_token)],
+    dependencies=[Depends(get_current_user)],
 )
 
 

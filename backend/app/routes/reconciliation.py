@@ -138,8 +138,11 @@ def get_summary(
             raise HTTPException(status_code=400, detail="batch_id or account_id required")
         row = db.execute(
             text("""
-                SELECT id FROM import_batches
-                WHERE account_id = :aid ORDER BY created_at DESC LIMIT 1
+                SELECT id FROM import_batches ib
+                WHERE ib.account_id = :aid
+                  AND (ib.status != 'ingested'
+                       OR EXISTS (SELECT 1 FROM bank_statement_lines WHERE batch_id = ib.id))
+                ORDER BY ib.created_at DESC LIMIT 1
             """),
             {"aid": account_id},
         ).fetchone()

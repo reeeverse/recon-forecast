@@ -230,8 +230,11 @@ def sync_connection(
     if not transactions:
         return {"synced": 0, "message": "No rows found in bank_transactions table"}
 
-    # Resolve account: use the first account belonging to this user (or any account for now)
-    acct = db.execute(text("SELECT id FROM accounts LIMIT 1")).fetchone()
+    # Resolve account: use the first account belonging to this user
+    acct = db.execute(
+        text("SELECT id FROM accounts WHERE user_id = :uid ORDER BY id LIMIT 1"),
+        {"uid": user["id"]},
+    ).fetchone()
     if not acct:
         raise HTTPException(status_code=422, detail="No accounts found — create an account first")
     account_id = acct.id

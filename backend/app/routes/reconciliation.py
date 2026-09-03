@@ -27,7 +27,6 @@ from reconciliation.writer import (
 router = APIRouter(
     prefix="/api/v1/reconciliation",
     tags=["reconciliation"],
-    dependencies=[Depends(get_current_user)],
 )
 
 
@@ -78,11 +77,15 @@ def _fetch_batch_lines(batch_id: int, db: Session):
 # ── Route 5: POST /reconciliation/run ─────────────────────────────────────────
 
 @router.post("/run")
-def run_reconciliation(body: RunReconRequest, db: Session = Depends(get_db)):
+def run_reconciliation(body: RunReconRequest, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     """Manually (re)run reconciliation for a batch."""
     batch = db.execute(
-        text("SELECT id FROM import_batches WHERE id = :bid"),
-        {"bid": body.batch_id},
+        text("""
+            SELECT ib.id FROM import_batches ib
+            JOIN accounts a ON a.id = ib.account_id
+            WHERE ib.id = :bid AND a.user_id = :uid
+        """),
+        {"bid": body.batch_id, "uid": user["id"]},
     ).fetchone()
     if not batch:
         raise HTTPException(status_code=404, detail="batch not found")
@@ -131,11 +134,19 @@ def get_summary(
     account_id: str | None = Query(default=None),
     latest: bool = Query(default=False),
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     """Headline counts for a reconciliation batch."""
     if batch_id is None:
         if not account_id:
             raise HTTPException(status_code=400, detail="batch_id or account_id required")
+        # Verify account belongs to current user
+        acct = db.execute(
+            text("SELECT id FROM accounts WHERE id=:aid AND user_id=:uid"),
+            {"aid": account_id, "uid": user["id"]},
+        ).fetchone()
+        if not acct:
+            raise HTTPException(status_code=404, detail="account not found")
         row = db.execute(
             text("""
                 SELECT id FROM import_batches ib
@@ -149,6 +160,18 @@ def get_summary(
         if not row:
             raise HTTPException(status_code=404, detail="no batches for account")
         batch_id = row.id
+    else:
+        # Verify batch belongs to current user's account
+        owned = db.execute(
+            text("""
+                SELECT ib.id FROM import_batches ib
+                JOIN accounts a ON a.id = ib.account_id
+                WHERE ib.id = :bid AND a.user_id = :uid
+            """),
+            {"bid": batch_id, "uid": user["id"]},
+        ).fetchone()
+        if not owned:
+            raise HTTPException(status_code=404, detail="batch not found")
 
     counts = db.execute(
         text("""
@@ -221,8 +244,20 @@ def get_exceptions(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     """Paged exception rows for the exceptions table."""
+    owned = db.execute(
+        text("""
+            SELECT ib.id FROM import_batches ib
+            JOIN accounts a ON a.id = ib.account_id
+            WHERE ib.id = :bid AND a.user_id = :uid
+        """),
+        {"bid": batch_id, "uid": user["id"]},
+    ).fetchone()
+    if not owned:
+        raise HTTPException(status_code=404, detail="batch not found")
+
     filters = "rr.batch_id = :bid"
     params: dict = {"bid": batch_id, "offset": (page - 1) * page_size, "limit": page_size}
     if kind:

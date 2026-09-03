@@ -55,6 +55,15 @@ def signup(body: SignupRequest, db: Session = Depends(get_db)):
         """),
         {"email": body.email, "pw": pw_hash, "role": role},
     ).fetchone()
+
+    # Create a blank primary account for this user
+    db.execute(
+        text("""
+            INSERT INTO accounts (id, name, currency, opening_balance_paise, min_threshold_paise, user_id)
+            VALUES (:id, 'Primary Account', 'INR', 0, 0, :uid)
+        """),
+        {"id": f"USR{row.id}", "uid": row.id},
+    )
     db.commit()
 
     token = create_access_token(row.id, row.email, row.role)

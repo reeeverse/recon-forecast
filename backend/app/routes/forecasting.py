@@ -274,9 +274,8 @@ def _put_dynamo_snapshot(
 @router.get(
     "/accounts",
     response_model=list[AccountSummary],
-    dependencies=[Depends(get_current_user)],
 )
-def list_accounts(db: Session = Depends(get_db)):
+def list_accounts(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     rows = db.execute(
         text("""
             SELECT
@@ -287,8 +286,9 @@ def list_accounts(db: Session = Depends(get_db)):
                     SELECT 1 FROM alerts al
                     WHERE al.account_id = a.id AND al.status = 'active'
                 ) AS has_active_alert
-            FROM accounts a ORDER BY a.id
-        """)
+            FROM accounts a WHERE a.user_id = :uid ORDER BY a.id
+        """),
+        {"uid": user["id"]},
     ).fetchall()
 
     result = []
@@ -321,12 +321,11 @@ def list_accounts(db: Session = Depends(get_db)):
 @router.get(
     "/accounts/{account_id}/cash-position",
     response_model=CashPositionResponse,
-    dependencies=[Depends(get_current_user)],
 )
-def get_cash_position(account_id: str, db: Session = Depends(get_db)):
+def get_cash_position(account_id: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     account = db.execute(
-        text("SELECT opening_balance_paise, min_threshold_paise FROM accounts WHERE id=:id"),
-        {"id": account_id},
+        text("SELECT opening_balance_paise, min_threshold_paise FROM accounts WHERE id=:id AND user_id=:uid"),
+        {"id": account_id, "uid": user["id"]},
     ).fetchone()
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
@@ -354,12 +353,11 @@ def get_cash_position(account_id: str, db: Session = Depends(get_db)):
 @router.get(
     "/accounts/{account_id}/forecast",
     response_model=ForecastResponse,
-    dependencies=[Depends(get_current_user)],
 )
-def get_forecast(account_id: str, db: Session = Depends(get_db)):
+def get_forecast(account_id: str, db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     account = db.execute(
-        text("SELECT min_threshold_paise FROM accounts WHERE id=:id"),
-        {"id": account_id},
+        text("SELECT min_threshold_paise FROM accounts WHERE id=:id AND user_id=:uid"),
+        {"id": account_id, "uid": user["id"]},
     ).fetchone()
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
@@ -419,7 +417,6 @@ def get_forecast(account_id: str, db: Session = Depends(get_db)):
 @router.get(
     "/alerts",
     response_model=AlertsResponse,
-    dependencies=[Depends(get_current_user)],
 )
 def get_alerts(
     status: str | None = Query(default=None),
@@ -427,9 +424,11 @@ def get_alerts(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
-    filters = "1=1"
-    params: dict = {"offset": (page - 1) * page_size, "limit": page_size}
+    # Restrict to current user's accounts
+    filters = "account_id IN (SELECT id FROM accounts WHERE user_id = :uid)"
+    params: dict = {"offset": (page - 1) * page_size, "limit": page_size, "uid": user["id"]}
     if status:
         filters += " AND status = :status"
         params["status"] = status

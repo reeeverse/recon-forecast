@@ -21,8 +21,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/api/v1/upload",
     tags=["upload"],
-    dependencies=[Depends(get_current_user)],
 )
+
+
+def _verify_account(account_id: str, user_id: int, db: Session) -> None:
+    row = db.execute(
+        text("SELECT id FROM accounts WHERE id = :aid AND user_id = :uid"),
+        {"aid": account_id, "uid": user_id},
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=403, detail="Account not found or access denied")
 
 
 def _make_batch(account_id: str, db: Session) -> int:
@@ -66,8 +74,10 @@ def upload_statement(
     account_id: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     """Direct multipart upload of bank CSV — fallback when S3 unavailable."""
+    _verify_account(account_id, user["id"], db)
     batch_id = _make_batch(account_id, db)
     content = file.file.read().decode("utf-8", errors="replace")
     try:
@@ -85,8 +95,10 @@ def upload_ledger(
     file: UploadFile = File(...),
     batch_id: int | None = Form(default=None),
     db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
 ):
     """Direct multipart upload of ledger CSV — fallback when S3 unavailable."""
+    _verify_account(account_id, user["id"], db)
     if batch_id is None:
         batch_id = _make_batch(account_id, db)
     content = file.file.read().decode("utf-8", errors="replace")

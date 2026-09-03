@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.app.routes import forecasting, reconciliation, upload
-from backend.app.routes.auth import router as auth_router
 from backend.app.routes.ai_agent import router as ai_router
+from backend.app.routes.auth import router as auth_router
 from backend.app.routes.connections import router as connections_router
 from backend.app.routes.settings import router as settings_router
 

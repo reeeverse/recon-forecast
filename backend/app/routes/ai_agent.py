@@ -8,9 +8,9 @@ import io
 import json
 import logging
 
-from groq import Groq
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
+from groq import Groq
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session

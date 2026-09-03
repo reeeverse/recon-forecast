@@ -30,7 +30,7 @@ from backend.app.schemas import (
 from backend.app.settings import settings
 from forecasting.cashflow import daily_balance_series
 from forecasting.model import holt_forecast
-from forecasting.sns import publish_alert, send_email_alert, send_sms_alert, _format_alert_message
+from forecasting.sns import _format_alert_message, publish_alert, send_email_alert, send_sms_alert
 from forecasting.threshold import evaluate_threshold, expire_stale_alerts
 from reconciliation.classify import mark_duplicates
 from reconciliation.loader import load_bank_csv, load_ledger_csv

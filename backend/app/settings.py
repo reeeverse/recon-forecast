@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Encryption (Fernet) for bank connection strings
     fernet_key: str = ""
 
+    # SES transactional email (must be a SES-verified sender address)
+    ses_from_email: str = ""
+
     # Matching thresholds (config constants — tune live for demo)
     auto_match_min: float = 85.0
     review_min: float = 60.0

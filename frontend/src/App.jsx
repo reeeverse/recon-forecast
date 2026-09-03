@@ -13,6 +13,7 @@ const DarkParticle = lazy(() => import("./themes/DarkParticle"));
 const UploadPage      = lazy(() => import("./pages/UploadPage"));
 const ChatPage        = lazy(() => import("./pages/ChatPage"));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
+const SettingsPage    = lazy(() => import("./pages/SettingsPage"));
 
 // Single design token set — dark particle field
 const T = {
@@ -56,6 +57,7 @@ const NAV = [
   { key: "upload",         label: "Upload",         path: "/dashboard/upload" },
   { key: "ai",             label: "AI Agent",       path: "/dashboard/ai" },
   { key: "connections",    label: "Connections",    path: "/dashboard/connections" },
+  { key: "settings",      label: "Settings",       path: "/dashboard/settings" },
 ];
 
 const fmtBalance = (p) =>
@@ -309,6 +311,7 @@ function Dashboard({ user, onLogout }) {
                   <Route path="/upload"      element={<UploadPage theme={T} accountId={accountId} />} />
                   <Route path="/ai"          element={<ChatPage theme={T} accountId={accountId} />} />
                   <Route path="/connections" element={<ConnectionsPage theme={T} />} />
+                  <Route path="/settings"   element={<SettingsPage />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>

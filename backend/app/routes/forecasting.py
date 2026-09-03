@@ -30,7 +30,7 @@ from backend.app.schemas import (
 from backend.app.settings import settings
 from forecasting.cashflow import daily_balance_series
 from forecasting.model import holt_forecast
-from forecasting.sns import publish_alert
+from forecasting.sns import publish_alert, send_email_alert, send_sms_alert, _format_alert_message
 from forecasting.threshold import evaluate_threshold, expire_stale_alerts
 from reconciliation.classify import mark_duplicates
 from reconciliation.loader import load_bank_csv, load_ledger_csv
@@ -210,6 +210,27 @@ def internal_ingest(body: IngestRequest, db: Session = Depends(get_db)):
     if alert:
         alerts_created = 1
         publish_alert(alert, settings.sns_topic_arn, settings.aws_region)
+
+        # Per-user direct notifications (email + SMS)
+        user_row = db.execute(
+            text("""
+                SELECT u.email, u.phone, u.notify_email, u.notify_sms
+                FROM users u JOIN accounts a ON a.user_id = u.id
+                WHERE a.id = :aid
+            """),
+            {"aid": body.account_id},
+        ).fetchone()
+        if user_row:
+            severity = alert["severity"].upper()
+            subject = f"[{severity}] Liquidity alert — breach on {alert['breach_date']}"
+            msg = _format_alert_message(alert)
+            if user_row.notify_email:
+                send_email_alert(
+                    user_row.email, subject, msg,
+                    settings.ses_from_email, settings.aws_region,
+                )
+            if user_row.notify_sms and user_row.phone:
+                send_sms_alert(user_row.phone, f"{subject}\n{msg}", settings.aws_region)
 
     # 7. Snapshot to DynamoDB
     _put_dynamo_snapshot(body.account_id, series, forecast_points, threshold)

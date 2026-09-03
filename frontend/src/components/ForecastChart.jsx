@@ -12,7 +12,18 @@ const fmtPaise = (p) =>
     notation: 'compact', maximumFractionDigits: 1,
   }).format(p / 100)
 
-const fmtDate = (d) => new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+// Parse ISO date string as local date to avoid UTC-midnight timezone shifts
+const parseDate = (d) => {
+  if (!d) return null
+  const [y, m, day] = String(d).split('-')
+  return new Date(+y, +m - 1, +day)
+}
+
+const fmtDate = (d) => {
+  const dt = parseDate(d)
+  if (!dt || isNaN(dt)) return '—'
+  return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+}
 
 const CustomTooltip = ({ active, payload, label, threshold }) => {
   if (!active || !payload?.length) return null
@@ -23,15 +34,15 @@ const CustomTooltip = ({ active, payload, label, threshold }) => {
       borderRadius: 'var(--radius-lg)', padding: '10px 14px', fontSize: 12,
     }}>
       <div style={{ color: 'var(--ink-muted)', marginBottom: 4 }}>{fmtDate(label)}</div>
-      <div><span style={{ color: 'var(--accent)' }}>●</span> Forecast: <span className="amount">{fmtPaise(d?.predicted_close_paise)}</span></div>
-      {d?.predicted_low_paise != null && (
+      <div><span style={{ color: 'var(--accent)' }}>●</span> Forecast: <span className="amount">{fmtPaise(d?.predicted_paise)}</span></div>
+      {d?.low_paise != null && (
         <div style={{ color: 'var(--ink-muted)' }}>
-          Range: <span className="amount">{fmtPaise(d.predicted_low_paise)}</span>
+          Range: <span className="amount">{fmtPaise(d.low_paise)}</span>
           {' – '}
-          <span className="amount">{fmtPaise(d.predicted_high_paise)}</span>
+          <span className="amount">{fmtPaise(d.high_paise)}</span>
         </div>
       )}
-      {threshold > 0 && d?.predicted_low_paise < threshold && (
+      {threshold > 0 && d?.low_paise != null && d.low_paise < threshold && (
         <div style={{ color: 'var(--danger)', marginTop: 4 }}>⚠ Below threshold</div>
       )}
     </div>
@@ -71,8 +82,9 @@ export default function ForecastChart({ accountId, threshold, accent = "#388bfd"
     </div>
   )
 
-  const minY = Math.min(...points.map((p) => p.predicted_low_paise ?? p.predicted_close_paise))
-  const maxY = Math.max(...points.map((p) => p.predicted_high_paise ?? p.predicted_close_paise))
+  // API fields: date, predicted_paise, low_paise, high_paise
+  const minY = Math.min(...points.map((p) => p.low_paise ?? p.predicted_paise))
+  const maxY = Math.max(...points.map((p) => p.high_paise ?? p.predicted_paise))
   const pad = (maxY - minY) * 0.1
 
   return (
@@ -98,7 +110,7 @@ export default function ForecastChart({ accountId, threshold, accent = "#388bfd"
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--hairline-soft)" vertical={false} />
           <XAxis
-            dataKey="horizon_date"
+            dataKey="date"
             tickFormatter={fmtDate}
             tick={{ fontSize: 11, fill: 'var(--ink-muted)' }}
             axisLine={false} tickLine={false}
@@ -112,26 +124,26 @@ export default function ForecastChart({ accountId, threshold, accent = "#388bfd"
             domain={[minY - pad, maxY + pad]}
           />
           <Tooltip content={<CustomTooltip threshold={threshold} />} />
-          {/* confidence band */}
+          {/* confidence band upper */}
           <Area
             type="monotone"
-            dataKey="predicted_high_paise"
+            dataKey="high_paise"
             stroke="none" fill="url(#fcGrad)"
             dot={false} legendType="none"
           />
           {/* main forecast line */}
           <Area
             type="monotone"
-            dataKey="predicted_close_paise"
+            dataKey="predicted_paise"
             stroke={accent} strokeWidth={2}
             fill="url(#fcGrad)"
             dot={false}
             activeDot={{ r: 4, fill: accent, stroke: 'var(--canvas)', strokeWidth: 2 }}
           />
-          {/* low band */}
+          {/* confidence band lower */}
           <Area
             type="monotone"
-            dataKey="predicted_low_paise"
+            dataKey="low_paise"
             stroke="none" fill="none"
             dot={false} legendType="none"
           />

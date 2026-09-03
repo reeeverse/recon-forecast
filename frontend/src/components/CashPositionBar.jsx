@@ -24,8 +24,9 @@ export default function CashPositionBar({ accountId }) {
   if (err) return null
   if (!data) return <Skeleton height={60} style={{ borderRadius: 'var(--radius-lg)' }} />
 
-  const { current_balance_paise: bal, min_threshold_paise: thr, projected_balance_paise: proj } = data
-  const safe = bal >= thr
+  // API field is threshold_paise (not min_threshold_paise)
+  const { current_balance_paise: bal, threshold_paise: thr } = data
+  const safe = !thr || bal >= thr
   const pct = thr > 0 ? Math.min(100, (bal / (thr * 2)) * 100) : 100
 
   return (
@@ -48,14 +49,9 @@ export default function CashPositionBar({ accountId }) {
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 11, color: 'var(--ink-muted)', marginBottom: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
             Min threshold: <span className="amount">{fmtPaise(thr)}</span>
           </div>
-          {proj != null && (
-            <div style={{ fontSize: 11, color: 'var(--ink-muted)' }}>
-              14d projected: <span className="amount" style={{ color: proj >= thr ? 'var(--ink)' : 'var(--warning)' }}>{fmtPaise(proj)}</span>
-            </div>
-          )}
         </div>
       </div>
 

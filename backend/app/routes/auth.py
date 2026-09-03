@@ -59,8 +59,8 @@ def signup(body: SignupRequest, db: Session = Depends(get_db)):
     # Create a blank primary account for this user
     db.execute(
         text("""
-            INSERT INTO accounts (id, name, currency, opening_balance_paise, min_threshold_paise, user_id)
-            VALUES (:id, 'Primary Account', 'INR', 0, 0, :uid)
+            INSERT INTO accounts (id, name, currency, opening_balance_paise, opening_balance_date, min_threshold_paise, user_id)
+            VALUES (:id, 'Primary Account', 'INR', 0, CURRENT_DATE, 0, :uid)
         """),
         {"id": f"USR{row.id}", "uid": row.id},
     )

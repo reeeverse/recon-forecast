@@ -2,6 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "./api";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 import LoginPage from "./pages/LoginPage";
 import ReconciliationPage from "./pages/ReconciliationPage";
@@ -63,124 +64,157 @@ const fmtBalance = (p) =>
     notation: "compact", maximumFractionDigits: 1,
   }).format(p / 100);
 
-function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, onLogout }) {
+function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, onLogout, isMobile, open, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const activeAccount = accounts.find(a => a.id === accountId);
 
-  return (
-    <aside style={{
-      width: 200, flexShrink: 0,
-      background: T.sidebarBg,
-      backdropFilter: "blur(20px)",
-      borderRight: `1px solid ${T.hairline}`,
-      display: "flex", flexDirection: "column",
-    }}>
-      <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${T.hairline}` }}>
-        <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.03em", color: T.ink }}>
-          recon<span style={{ color: T.accent }}>·</span>forecast
-        </div>
-        <div style={{ fontSize: 11, color: T.inkSubtle, marginTop: 2 }}>Liquidity Intelligence</div>
-      </div>
+  function handleNav(path) {
+    navigate(path);
+    if (isMobile) onClose();
+  }
 
-      <div style={{ padding: "12px 12px 8px" }}>
-        <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Account
-        </div>
-        <select
-          value={accountId}
-          onChange={e => setAccountId(e.target.value)}
+  const sidebarStyle = isMobile ? {
+    position: "fixed", top: 0, left: open ? 0 : -260, height: "100vh",
+    width: 240, zIndex: 100,
+    background: "rgba(10,13,20,0.98)",
+    backdropFilter: "blur(24px)",
+    borderRight: `1px solid ${T.hairline}`,
+    display: "flex", flexDirection: "column",
+    transition: "left 0.25s cubic-bezier(0.4,0,0.2,1)",
+    overflowY: "auto",
+  } : {
+    width: 200, flexShrink: 0,
+    background: T.sidebarBg,
+    backdropFilter: "blur(20px)",
+    borderRight: `1px solid ${T.hairline}`,
+    display: "flex", flexDirection: "column",
+  };
+
+  return (
+    <>
+      {isMobile && open && (
+        <div
+          onClick={onClose}
           style={{
-            width: "100%", padding: "6px 8px",
-            background: T.surface2, border: `1px solid ${T.hairline}`,
-            borderRadius: 8, color: T.ink, fontSize: 13,
+            position: "fixed", inset: 0,
+            background: "rgba(0,0,0,0.55)",
+            zIndex: 99,
+            backdropFilter: "blur(2px)",
           }}
-        >
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
-        {activeAccount && (
-          <div style={{
-            fontSize: 11, marginTop: 5, fontVariantNumeric: "tabular-nums",
-            color: activeAccount.current_balance_paise >= activeAccount.min_threshold_paise
-              ? T.success : T.danger,
-          }}>
-            {fmtBalance(activeAccount.current_balance_paise)}
-            {activeAccount.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
+        />
+      )}
+      <aside style={sidebarStyle}>
+        <div style={{ padding: "20px 16px 16px", borderBottom: `1px solid ${T.hairline}` }}>
+          <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.03em", color: T.ink }}>
+            recon<span style={{ color: T.accent }}>·</span>forecast
+          </div>
+          <div style={{ fontSize: 11, color: T.inkSubtle, marginTop: 2 }}>Liquidity Intelligence</div>
+        </div>
+
+        <div style={{ padding: "12px 12px 8px" }}>
+          <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Account
+          </div>
+          <select
+            value={accountId}
+            onChange={e => { setAccountId(e.target.value); if (isMobile) onClose(); }}
+            style={{
+              width: "100%", padding: "6px 8px",
+              background: T.surface2, border: `1px solid ${T.hairline}`,
+              borderRadius: 8, color: T.ink, fontSize: 13,
+            }}
+          >
+            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+          {activeAccount && (
+            <div style={{
+              fontSize: 11, marginTop: 5, fontVariantNumeric: "tabular-nums",
+              color: activeAccount.current_balance_paise >= activeAccount.min_threshold_paise
+                ? T.success : T.danger,
+            }}>
+              {fmtBalance(activeAccount.current_balance_paise)}
+              {activeAccount.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
+            </div>
+          )}
+        </div>
+
+        <nav style={{ flex: 1, padding: "4px 8px" }}>
+          {NAV.map(n => {
+            const active = location.pathname === n.path ||
+              (n.path !== "/dashboard" && location.pathname.startsWith(n.path));
+            return (
+              <button
+                key={n.key}
+                onClick={() => handleNav(n.path)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  width: "100%", textAlign: "left",
+                  padding: isMobile ? "10px 12px" : "7px 10px",
+                  marginBottom: 2, border: "none",
+                  borderLeft: `2px solid ${active ? T.accent : "transparent"}`,
+                  borderRadius: 8,
+                  background: active ? T.surface2 : "transparent",
+                  color: active ? T.ink : T.inkMuted,
+                  fontSize: isMobile ? 14 : 13,
+                  fontWeight: active ? 500 : 400, cursor: "pointer",
+                  transition: "background 0.15s, color 0.15s",
+                }}
+              >
+                {n.label}
+                {n.key === "alerts" && alertCount > 0 && (
+                  <span style={{
+                    fontSize: 10, fontWeight: 600, minWidth: 18,
+                    background: T.danger, color: "#fff",
+                    borderRadius: 9999, padding: "1px 5px",
+                  }}>
+                    {alertCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {health && (
+          <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 11, color: T.inkSubtle }}>
+            {["db", "dynamo", "sns"].map(s => (
+              <span key={s} style={{ marginRight: 8 }}>
+                <span style={{ color: health[s] === "ok" ? T.success : T.danger }}>●</span> {s}
+              </span>
+            ))}
           </div>
         )}
-      </div>
 
-      <nav style={{ flex: 1, padding: "4px 8px" }}>
-        {NAV.map(n => {
-          const active = location.pathname === n.path ||
-            (n.path !== "/dashboard" && location.pathname.startsWith(n.path));
-          return (
-            <button
-              key={n.key}
-              onClick={() => navigate(n.path)}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                width: "100%", textAlign: "left",
-                padding: "7px 10px", marginBottom: 2, border: "none",
-                borderLeft: `2px solid ${active ? T.accent : "transparent"}`,
-                borderRadius: 8,
-                background: active ? T.surface2 : "transparent",
-                color: active ? T.ink : T.inkMuted,
-                fontSize: 13, fontWeight: active ? 500 : 400, cursor: "pointer",
-                transition: "background 0.15s, color 0.15s",
-              }}
-            >
-              {n.label}
-              {n.key === "alerts" && alertCount > 0 && (
-                <span style={{
-                  fontSize: 10, fontWeight: 600, minWidth: 18,
-                  background: T.danger, color: "#fff",
-                  borderRadius: 9999, padding: "1px 5px",
-                }}>
-                  {alertCount}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {health && (
-        <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 11, color: T.inkSubtle }}>
-          {["db", "dynamo", "sns"].map(s => (
-            <span key={s} style={{ marginRight: 8 }}>
-              <span style={{ color: health[s] === "ok" ? T.success : T.danger }}>●</span> {s}
-            </span>
-          ))}
+        <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 12, color: T.inkMuted }}>
+          <div style={{ marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {user?.email}
+          </div>
+          <button
+            onClick={onLogout}
+            style={{
+              padding: "5px 10px", background: "transparent",
+              border: `1px solid ${T.hairline}`, borderRadius: 7,
+              color: T.inkSubtle, fontSize: 12, cursor: "pointer",
+            }}
+          >
+            Sign out
+          </button>
         </div>
-      )}
-
-      <div style={{ padding: "10px 14px", borderTop: `1px solid ${T.hairline}`, fontSize: 12, color: T.inkMuted }}>
-        <div style={{ marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {user?.email}
-        </div>
-        <button
-          onClick={onLogout}
-          style={{
-            padding: "5px 10px", background: "transparent",
-            border: `1px solid ${T.hairline}`, borderRadius: 7,
-            color: T.inkSubtle, fontSize: 12, cursor: "pointer",
-          }}
-        >
-          Sign out
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
 function Dashboard({ user, onLogout }) {
   const location = useLocation();
-  const [accounts, setAccounts]     = useState([]);
-  const [accountId, setAccountId]   = useState("");
-  const [batchId, setBatchId]       = useState(null);
-  const [alertCount, setAlertCount] = useState(0);
-  const [health, setHealth]         = useState(null);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accounts, setAccounts]       = useState([]);
+  const [accountId, setAccountId]     = useState("");
+  const [batchId, setBatchId]         = useState(null);
+  const [alertCount, setAlertCount]   = useState(0);
+  const [health, setHealth]           = useState(null);
 
   useEffect(() => {
     apiFetch("/accounts")
@@ -202,16 +236,55 @@ function Dashboard({ user, onLogout }) {
       .catch(() => setBatchId(null));
   }, [accountId]);
 
+  // Close sidebar on route change on mobile
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", position: "relative" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", position: "relative", flexDirection: "column" }}>
       <Suspense fallback={<div style={{ position: "fixed", inset: 0, background: "#080810", zIndex: 0 }} />}>
         <DarkParticle />
       </Suspense>
 
-      <div style={{ position: "relative", zIndex: 10, display: "flex", width: "100%", height: "100%" }}>
+      {/* Mobile top bar */}
+      {isMobile && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, height: 52,
+          display: "flex", alignItems: "center", gap: 12, padding: "0 16px",
+          background: "rgba(10,13,20,0.92)",
+          backdropFilter: "blur(20px)",
+          borderBottom: `1px solid ${T.hairline}`,
+          zIndex: 98,
+          flexShrink: 0,
+        }}>
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            aria-label="Open menu"
+            style={{
+              background: "none", border: "none", color: T.ink,
+              cursor: "pointer", padding: "6px 4px", lineHeight: 1,
+              fontSize: 22, display: "flex", alignItems: "center",
+            }}
+          >
+            ☰
+          </button>
+          <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: "-0.03em", color: T.ink }}>
+            recon<span style={{ color: T.accent }}>·</span>forecast
+          </div>
+        </div>
+      )}
+
+      <div style={{
+        position: "relative", zIndex: 10, display: "flex",
+        width: "100%", flex: 1, overflow: "hidden",
+        paddingTop: isMobile ? 52 : 0,
+        boxSizing: "border-box",
+      }}>
         <Sidebar
           accounts={accounts} accountId={accountId} setAccountId={setAccountId}
           alertCount={alertCount} health={health} user={user} onLogout={onLogout}
+          isMobile={isMobile} open={sidebarOpen} onClose={() => setSidebarOpen(false)}
         />
 
         <main style={{ flex: 1, overflowY: "auto", color: T.ink, position: "relative" }}>
@@ -223,7 +296,11 @@ function Dashboard({ user, onLogout }) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ type: "spring", bounce: 0, duration: 0.25 }}
-                style={{ minHeight: "100%", padding: "28px 32px", boxSizing: "border-box" }}
+                style={{
+                  minHeight: "100%",
+                  padding: isMobile ? "16px" : "28px 32px",
+                  boxSizing: "border-box",
+                }}
               >
                 <Routes location={location}>
                   <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />

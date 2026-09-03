@@ -11,7 +11,7 @@ function MetricCard({ label, value, sub, color }) {
       border: '1px solid var(--hairline)',
       borderRadius: 'var(--radius-lg)',
       padding: '16px 20px',
-      minWidth: 140,
+      minWidth: 120,
       flex: 1,
     }}>
       <div style={{ fontSize: 12, color: 'var(--ink-muted)', marginBottom: 6 }}>{label}</div>

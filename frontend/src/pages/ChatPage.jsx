@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "../api";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 function ImagePanel({ theme, accountId }) {
   const inputRef = useRef();
@@ -244,21 +245,28 @@ function ChatPanel({ theme, accountId }) {
 }
 
 export default function ChatPage({ theme, accountId }) {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ padding: 32, height: "calc(100vh - 64px)", display: "flex", flexDirection: "column" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#e2e8f0", marginBottom: 20, letterSpacing: "-0.03em", flexShrink: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#e2e8f0", marginBottom: 20, letterSpacing: "-0.03em" }}>
         AI Agent
       </h1>
-      <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, minHeight: 0 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        gap: 16,
+      }}>
         <div style={{
           background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 16, padding: 24, overflowY: "auto",
+          borderRadius: 16, padding: isMobile ? 16 : 24, overflowY: "auto",
         }}>
           <ImagePanel theme={theme} accountId={accountId} />
         </div>
         <div style={{
           background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
-          borderRadius: 16, padding: 24, display: "flex", flexDirection: "column",
+          borderRadius: 16, padding: isMobile ? 16 : 24,
+          display: "flex", flexDirection: "column",
+          minHeight: isMobile ? 420 : 500,
         }}>
           <ChatPanel theme={theme} accountId={accountId} />
         </div>

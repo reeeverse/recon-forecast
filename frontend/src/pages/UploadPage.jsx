@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "../api";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 function DropZone({ label, accept, file, onFile, accent }) {
   const inputRef = useRef();
@@ -42,6 +43,7 @@ function DropZone({ label, accept, file, onFile, accent }) {
 
 export default function UploadPage({ theme, accountId }) {
   const accent = theme?.accent || "#388bfd";
+  const isMobile = useIsMobile();
   const [bankFile, setBankFile]     = useState(null);
   const [ledgerFile, setLedgerFile] = useState(null);
   const [status, setStatus]         = useState("idle");
@@ -94,7 +96,7 @@ export default function UploadPage({ theme, accountId }) {
         Drop your bank statement and ledger CSVs — reconciliation runs automatically.
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <DropZone label="Bank Statement" accept=".csv" file={bankFile} onFile={setBankFile} accent={accent} />
         <DropZone label="Ledger CSV" accept=".csv" file={ledgerFile} onFile={setLedgerFile} accent={accent} />
       </div>
@@ -133,7 +135,7 @@ export default function UploadPage({ theme, accountId }) {
             }}
           >
             <div style={{ fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Reconciliation complete</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
               {[
                 { label: "Auto matched", val: result.auto_matched ?? "—", color: "#22c55e" },
                 { label: "Needs review", val: result.review ?? "—", color: "#f59e0b" },

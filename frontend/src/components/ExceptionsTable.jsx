@@ -77,9 +77,10 @@ export default function ExceptionsTable({ batchId }) {
         background: 'var(--surface-1)',
         border: '1px solid var(--hairline)',
         borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--hairline)', background: 'var(--surface-2)' }}>
               {['Type', 'Conf', 'Bank Date', 'Bank Amount', 'Ledger Date', 'Ledger Amount', 'Δ Amount', 'Δ Days', 'Exception'].map((h) => (

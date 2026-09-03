@@ -3,13 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "../api";
 import { useIsMobile } from "../hooks/useIsMobile";
 
+const BASE = import.meta.env.VITE_API_BASE ?? "/api/v1";
+
 function ImagePanel({ theme, accountId }) {
   const inputRef = useRef();
-  const [file, setFile]           = useState(null);
-  const [preview, setPreview]     = useState(null);
-  const [loading, setLoading]     = useState(false);
-  const [result, setResult]       = useState(null);
-  const [error, setError]         = useState("");
+  const [file, setFile]       = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult]   = useState(null);
+  const [error, setError]     = useState("");
   const accent = theme?.accent || "#388bfd";
 
   function onFile(f) {
@@ -51,14 +53,14 @@ function ImagePanel({ theme, accountId }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ fontWeight: 600, fontSize: 15, color: "#e2e8f0" }}>Analyze Statement</div>
+      <div style={{ fontWeight: 600, fontSize: 15, color: "var(--ink)" }}>Analyze Statement</div>
       <div
         onClick={() => inputRef.current.click()}
         style={{
-          border: `2px dashed ${preview ? accent : "rgba(255,255,255,0.1)"}`,
+          border: `2px dashed ${preview ? accent : "var(--hairline)"}`,
           borderRadius: 12, padding: preview ? 0 : 32, textAlign: "center",
           cursor: "pointer", overflow: "hidden", minHeight: 120,
-          background: "rgba(0,0,0,0.2)", transition: "border-color 0.2s",
+          background: "var(--surface-2)", transition: "border-color 0.2s",
         }}
       >
         <input ref={inputRef} type="file" accept="image/*" hidden
@@ -67,13 +69,13 @@ function ImagePanel({ theme, accountId }) {
           ? <img src={preview} alt="statement" style={{ width: "100%", display: "block", maxHeight: 220, objectFit: "cover" }} />
           : <>
               <div style={{ fontSize: 32, marginBottom: 8 }}>🖼</div>
-              <div style={{ fontSize: 13, color: "#64748b" }}>Drop a bank statement image</div>
+              <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>Drop a bank statement image</div>
             </>
         }
       </div>
 
       {file && (
-        <button onClick={analyze} disabled={loading} style={{
+        <button type="button" onClick={analyze} disabled={loading} style={{
           padding: "10px 0", background: accent, color: "#000",
           border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14,
           cursor: loading ? "wait" : "pointer",
@@ -82,17 +84,17 @@ function ImagePanel({ theme, accountId }) {
         </button>
       )}
 
-      {error && <div style={{ color: "#f87171", fontSize: 13 }}>{error}</div>}
+      {error && <div style={{ color: "var(--danger)", fontSize: 13 }}>{error}</div>}
 
       {result && (
         <AnimatePresence>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={{ fontSize: 13, color: "#94a3b8" }}>{result.count} transactions extracted</div>
-              <button onClick={downloadCsv} style={{
-                padding: "5px 12px", background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7,
-                color: "#e2e8f0", fontSize: 12, cursor: "pointer",
+              <div style={{ fontSize: 13, color: "var(--ink-muted)" }}>{result.count} transactions extracted</div>
+              <button type="button" onClick={downloadCsv} style={{
+                padding: "5px 12px", background: "var(--surface-2)",
+                border: "1px solid var(--hairline)", borderRadius: 7,
+                color: "var(--ink)", fontSize: 12, cursor: "pointer",
               }}>
                 Download CSV
               </button>
@@ -100,19 +102,19 @@ function ImagePanel({ theme, accountId }) {
             <div style={{ maxHeight: 240, overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                 <thead>
-                  <tr style={{ color: "#64748b", textAlign: "left" }}>
+                  <tr style={{ color: "var(--ink-muted)", textAlign: "left" }}>
                     {["Date", "Description", "Amount", "Dir"].map(h => (
-                      <th key={h} style={{ padding: "4px 8px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>{h}</th>
+                      <th key={h} style={{ padding: "4px 8px", borderBottom: "1px solid var(--hairline-soft)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {result.transactions.slice(0, 30).map((t, i) => (
-                    <tr key={i} style={{ color: "#cbd5e1" }}>
+                    <tr key={i} style={{ color: "var(--ink)" }}>
                       <td style={{ padding: "4px 8px", fontVariantNumeric: "tabular-nums" }}>{t.date}</td>
                       <td style={{ padding: "4px 8px", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.description}</td>
                       <td style={{ padding: "4px 8px", fontVariantNumeric: "tabular-nums" }}>₹{((t.amount_paise || 0) / 100).toLocaleString("en-IN")}</td>
-                      <td style={{ padding: "4px 8px", color: t.direction === "credit" ? "#22c55e" : "#f87171" }}>{t.direction}</td>
+                      <td style={{ padding: "4px 8px", color: t.direction === "credit" ? "var(--success)" : "var(--danger)" }}>{t.direction}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -130,7 +132,7 @@ function ChatPanel({ theme, accountId }) {
   const [messages, setMessages] = useState([
     { role: "assistant", text: "Hi! I can help you understand your reconciliation results, spot anomalies, and interpret forecasts. Ask me anything." }
   ]);
-  const [input, setInput]   = useState("");
+  const [input, setInput]     = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef();
 
@@ -147,7 +149,7 @@ function ChatPanel({ theme, accountId }) {
 
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("/api/v1/ai/chat", {
+      const res = await fetch(`${BASE}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -192,7 +194,7 @@ function ChatPanel({ theme, accountId }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      <div style={{ fontWeight: 600, fontSize: 15, color: "#e2e8f0", marginBottom: 12 }}>AI Assistant</div>
+      <div style={{ fontWeight: 600, fontSize: 15, color: "var(--ink)", marginBottom: 12 }}>AI Assistant</div>
       <div style={{
         flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12,
         paddingRight: 4, minHeight: 0,
@@ -204,8 +206,8 @@ function ChatPanel({ theme, accountId }) {
           }}>
             <div style={{
               maxWidth: "82%", padding: "10px 14px",
-              background: m.role === "user" ? accent : "rgba(255,255,255,0.06)",
-              color: m.role === "user" ? "#000" : "#e2e8f0",
+              background: m.role === "user" ? accent : "var(--surface-2)",
+              color: m.role === "user" ? "#000" : "var(--ink)",
               borderRadius: m.role === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
               fontSize: 14, lineHeight: 1.55, whiteSpace: "pre-wrap",
             }}>
@@ -216,7 +218,7 @@ function ChatPanel({ theme, accountId }) {
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--hairline)" }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -224,12 +226,13 @@ function ChatPanel({ theme, accountId }) {
           placeholder="Ask about reconciliation, forecasts, alerts…"
           style={{
             flex: 1, padding: "10px 14px",
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 10, fontSize: 14, color: "#e2e8f0", outline: "none",
+            background: "var(--surface-2)",
+            border: "1px solid var(--hairline)",
+            borderRadius: 10, fontSize: 14, color: "var(--ink)", outline: "none",
           }}
         />
         <button
+          type="button"
           onClick={send} disabled={loading || !input.trim()}
           style={{
             padding: "10px 18px", background: accent, color: "#000",
@@ -248,7 +251,7 @@ export default function ChatPage({ theme, accountId }) {
   const isMobile = useIsMobile();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#e2e8f0", marginBottom: 20, letterSpacing: "-0.03em" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--ink)", marginBottom: 20, letterSpacing: "-0.03em" }}>
         AI Agent
       </h1>
       <div style={{
@@ -257,13 +260,13 @@ export default function ChatPage({ theme, accountId }) {
         gap: 16,
       }}>
         <div style={{
-          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+          background: "var(--surface-1)", border: "1px solid var(--hairline)",
           borderRadius: 16, padding: isMobile ? 16 : 24, overflowY: "auto",
         }}>
           <ImagePanel theme={theme} accountId={accountId} />
         </div>
         <div style={{
-          background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+          background: "var(--surface-1)", border: "1px solid var(--hairline)",
           borderRadius: 16, padding: isMobile ? 16 : 24,
           display: "flex", flexDirection: "column",
           minHeight: isMobile ? 420 : 500,

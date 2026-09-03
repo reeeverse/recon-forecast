@@ -99,3 +99,8 @@ a { color: var(--accent); text-decoration: none; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--canvas); }
 ::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 3px; }
+
+@keyframes skpulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.8; }
+}

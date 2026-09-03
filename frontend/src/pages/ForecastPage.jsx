@@ -19,7 +19,12 @@ export default function ForecastPage({ accountId, accent }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>Cash Position</h2>
+        <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 4 }}>
+          Forecast
+        </h1>
+        <p style={{ fontSize: 14, color: 'var(--ink-muted)', margin: '4px 0 16px' }}>
+          14-day cash position and liquidity outlook.
+        </p>
         <CashPositionBar accountId={accountId} />
       </div>
       <div>

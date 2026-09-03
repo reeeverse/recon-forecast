@@ -83,10 +83,12 @@ def upload_statement(
 def upload_ledger(
     account_id: str = Form(...),
     file: UploadFile = File(...),
+    batch_id: int | None = Form(default=None),
     db: Session = Depends(get_db),
 ):
     """Direct multipart upload of ledger CSV — fallback when S3 unavailable."""
-    batch_id = _make_batch(account_id, db)
+    if batch_id is None:
+        batch_id = _make_batch(account_id, db)
     content = file.file.read().decode("utf-8", errors="replace")
     try:
         rows = load_ledger_csv(io.StringIO(content), batch_id, account_id, db)

@@ -21,10 +21,10 @@ function DropZone({ label, accept, file, onFile, accent }) {
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
       style={{
-        border: `2px dashed ${dragging ? accent : "rgba(255,255,255,0.12)"}`,
+        border: `2px dashed ${dragging ? accent : "var(--hairline)"}`,
         borderRadius: 14, padding: "28px 20px", textAlign: "center",
         cursor: "pointer", transition: "border-color 0.2s",
-        background: dragging ? `${accent}08` : "rgba(255,255,255,0.03)",
+        background: dragging ? `${accent}10` : "var(--surface-1)",
       }}
     >
       <input ref={inputRef} type="file" accept={accept} hidden
@@ -32,10 +32,10 @@ function DropZone({ label, accept, file, onFile, accent }) {
       <div style={{ fontSize: 28, marginBottom: 8 }}>
         {file ? "✓" : "↑"}
       </div>
-      <div style={{ fontWeight: 600, fontSize: 14, color: "#e2e8f0", marginBottom: 4 }}>{label}</div>
+      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--ink)", marginBottom: 4 }}>{label}</div>
       {file
         ? <div style={{ fontSize: 13, color: accent }}>{file.name}</div>
-        : <div style={{ fontSize: 12, color: "#64748b" }}>Drop CSV here or click to browse</div>
+        : <div style={{ fontSize: 12, color: "var(--ink-muted)" }}>Drop CSV here or click to browse</div>
       }
     </div>
   );
@@ -62,22 +62,27 @@ export default function UploadPage({ theme, accountId }) {
     try {
       const aid = accountId || "ACC-001";
 
+      // Upload statement first — captures the batch_id
       const bankForm = new FormData();
       bankForm.append("file", bankFile);
       bankForm.append("account_id", aid);
-      await apiFetch(`/upload/statement`, { method: "POST", body: bankForm, raw: true });
+      const { batch_id: statementBatchId } = await apiFetch("/upload/statement", {
+        method: "POST", body: bankForm, raw: true,
+      });
 
+      // Upload ledger into the same batch
       const ledgerForm = new FormData();
       ledgerForm.append("file", ledgerFile);
       ledgerForm.append("account_id", aid);
-      await apiFetch(`/upload/ledger`, { method: "POST", body: ledgerForm, raw: true });
+      ledgerForm.append("batch_id", String(statementBatchId));
+      await apiFetch("/upload/ledger", { method: "POST", body: ledgerForm, raw: true });
 
       setStatus("reconciling");
-      const recon = await apiFetch(`/reconciliation/run`, {
+      const recon = await apiFetch("/reconciliation/run", {
         method: "POST",
-        body: JSON.stringify({ account_id: aid }),
+        body: JSON.stringify({ batch_id: statementBatchId }),
       });
-      setResult(recon);
+      setResult(recon.summary);
       setStatus("done");
     } catch (err) {
       setError(err.message || "Upload failed");
@@ -88,11 +93,11 @@ export default function UploadPage({ theme, accountId }) {
   const busy = status === "uploading" || status === "reconciling";
 
   return (
-    <div style={{ padding: 32, maxWidth: 640, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "#e2e8f0", marginBottom: 6, letterSpacing: "-0.03em" }}>
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", marginBottom: 4 }}>
         Upload Statements
       </h1>
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 28 }}>
+      <p style={{ color: "var(--ink-muted)", fontSize: 14, marginBottom: 28, margin: "4px 0 28px" }}>
         Drop your bank statement and ledger CSVs — reconciliation runs automatically.
       </p>
 
@@ -105,7 +110,7 @@ export default function UploadPage({ theme, accountId }) {
         <div style={{
           padding: "10px 14px", borderRadius: 8, marginBottom: 16,
           background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
-          color: "#f87171", fontSize: 13,
+          color: "var(--danger)", fontSize: 13,
         }}>{error}</div>
       )}
 
@@ -115,6 +120,7 @@ export default function UploadPage({ theme, accountId }) {
           padding: "12px 28px", background: accent, color: "#000",
           border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14,
           cursor: busy ? "wait" : "pointer", opacity: busy ? 0.7 : 1,
+          width: isMobile ? "100%" : "auto",
         }}
       >
         {busy
@@ -129,28 +135,35 @@ export default function UploadPage({ theme, accountId }) {
             animate={{ opacity: 1, y: 0 }}
             style={{
               marginTop: 28, padding: 24,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              background: "var(--surface-1)",
+              border: "1px solid var(--hairline)",
               borderRadius: 14,
             }}
           >
-            <div style={{ fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Reconciliation complete</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ fontWeight: 600, color: "var(--ink)", marginBottom: 16 }}>
+              Reconciliation complete
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12 }}>
               {[
-                { label: "Auto matched", val: result.auto_matched ?? "—", color: "#22c55e" },
-                { label: "Needs review", val: result.review ?? "—", color: "#f59e0b" },
-                { label: "Unmatched", val: (result.unmatched_bank || 0) + (result.unmatched_ledger || 0), color: "#f87171" },
+                { label: "Auto matched",  val: result.auto_matched  ?? "—", color: "var(--success)" },
+                { label: "Needs review",  val: result.review        ?? "—", color: "var(--warning)" },
+                { label: "Unmatched",     val: (result.unmatched_bank || 0) + (result.unmatched_ledger || 0), color: "var(--danger)" },
               ].map(c => (
                 <div key={c.label} style={{
-                  padding: 14, background: "rgba(0,0,0,0.2)", borderRadius: 10, textAlign: "center",
+                  padding: 14, background: "var(--surface-2)", borderRadius: 10, textAlign: "center",
                 }}>
-                  <div style={{ fontSize: 24, fontWeight: 700, color: c.color, fontVariantNumeric: "tabular-nums" }}>
+                  <div className="amount" style={{ fontSize: 24, fontWeight: 700, color: c.color }}>
                     {c.val}
                   </div>
-                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>{c.label}</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-muted)", marginTop: 4 }}>{c.label}</div>
                 </div>
               ))}
             </div>
+            {result.duplicates > 0 && (
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--warning)" }}>
+                ⚠ {result.duplicates} duplicate row{result.duplicates !== 1 ? "s" : ""} detected
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

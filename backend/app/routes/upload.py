@@ -84,6 +84,7 @@ def upload_statement(
         rows = load_bank_csv(io.StringIO(content), batch_id, account_id, db)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    db.commit()
     return UploadResponse(batch_id=batch_id, rows=rows)
 
 
@@ -106,4 +107,5 @@ def upload_ledger(
         rows = load_ledger_csv(io.StringIO(content), batch_id, account_id, db)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    db.commit()
     return UploadResponse(batch_id=batch_id, rows=rows)

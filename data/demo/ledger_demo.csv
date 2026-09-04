@@ -1,0 +1,16 @@
+account_id,txn_date,amount_paise,direction,description,reference,counterparty
+DEMO-ACCOUNT,2026-09-01,4500000,credit,Payment received from Rajesh Kumar,UTR001,Rajesh Kumar
+DEMO-ACCOUNT,2026-09-02,2500000,debit,Office Rent September 2026,INV-RENT-01,Prestige Estates
+DEMO-ACCOUNT,2026-09-03,12000000,credit,Invoice payment Acme Corp Ltd,UTR002,Acme Corp Ltd
+DEMO-ACCOUNT,2026-09-05,1800000,debit,GST Q2 quarterly payment,CHALLAN-001,GSTN
+DEMO-ACCOUNT,2026-09-07,875000,debit,Supplier payment BoltParts Pvt Ltd,UTR003,BoltParts Pvt Ltd
+DEMO-ACCOUNT,2026-09-04,5000000,debit,Supplier payment Global Tech Systems,UTR004,Global Tech Systems
+DEMO-ACCOUNT,2026-09-03,3200000,credit,Customer payment Vertex Industries,UTR005,Vertex Industries
+DEMO-ACCOUNT,2026-09-06,1500000,debit,Vendor payment Lakshmi Enterprises,UTR006,Lakshmi Enterprises
+DEMO-ACCOUNT,2026-09-04,4500000,credit,Payment from Northwind Traders,UTR007,Northwind Traders
+DEMO-ACCOUNT,2026-09-06,3200000,debit,Payment to Zephyr Systems,UTR008,Zephyr Systems
+DEMO-ACCOUNT,2026-09-05,2000000,credit,Online payment received customer,,Online Customer
+DEMO-ACCOUNT,2026-09-07,800000,debit,Miscellaneous office expenses,,Various
+DEMO-ACCOUNT,2026-09-03,3750000,credit,Payment from Joel Enterprises,UTR-JOEL-001,Joel Enterprises
+DEMO-ACCOUNT,2026-09-12,7500000,credit,Cheque from ABC Trading post-dated,CHQ-12345,ABC Trading
+DEMO-ACCOUNT,2026-09-08,500000,debit,Accrued utilities expense,ACCR-001,Utility Company

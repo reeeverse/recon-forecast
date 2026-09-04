@@ -102,7 +102,22 @@ def run_reconciliation(body: RunReconRequest, db: Session = Depends(get_db), use
     ]
     dup_ids = mark_duplicates(bank_dicts, "id", "hash")
 
-    results = reconcile(bank_lines, ledger_entries)
+    # Exclude duplicates from matching; inject duplicate_bank results manually
+    non_dup_lines = [b for b in bank_lines if b.id not in dup_ids]
+    dup_lines = [b for b in bank_lines if b.id in dup_ids]
+
+    results = reconcile(non_dup_lines, ledger_entries)
+
+    from reconciliation.matcher import MatchResult as _MR
+    for b in dup_lines:
+        results.append(_MR(
+            bank_id=b.id,
+            ledger_id=None,
+            match_type="duplicate_bank",
+            exception_kind="duplicate",
+            confidence=0.0,
+        ))
+
     write_reconciliation_results(results, body.batch_id, db)
     verified = write_verified_transactions(body.batch_id, db)
 

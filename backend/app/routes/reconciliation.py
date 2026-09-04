@@ -241,6 +241,7 @@ def get_summary(
 def get_exceptions(
     batch_id: int = Query(...),
     kind: str | None = Query(default=None),
+    match_type: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -263,6 +264,9 @@ def get_exceptions(
     if kind:
         filters += " AND rr.exception_kind = :kind"
         params["kind"] = kind
+    if match_type:
+        filters += " AND rr.match_type = :match_type"
+        params["match_type"] = match_type
 
     rows = db.execute(
         text(f"""
@@ -283,9 +287,10 @@ def get_exceptions(
         params,
     ).fetchall()
 
+    count_params = {k: v for k, v in params.items() if k not in ("offset", "limit")}
     total = db.execute(
         text(f"SELECT COUNT(*) FROM reconciliation_results rr WHERE {filters}"),
-        {k: v for k, v in params.items() if k not in ("offset", "limit")},
+        count_params,
     ).scalar() or 0
 
     items = []

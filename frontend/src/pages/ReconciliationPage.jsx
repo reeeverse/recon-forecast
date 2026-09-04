@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import BankStatementsPanel from '../components/BankStatementsPanel'
 import ExceptionsTable from '../components/ExceptionsTable'
 import LedgerPanel from '../components/LedgerPanel'
 import ReconSummaryCards from '../components/ReconSummaryCards'
@@ -25,6 +26,11 @@ export default function ReconciliationPage({ accountId, batchId }) {
       {/* Summary */}
       <div>
         <ReconSummaryCards key={reconKey} accountId={accountId} />
+      </div>
+
+      {/* Bank statement lines (read-only) */}
+      <div>
+        <BankStatementsPanel batchId={batchId} />
       </div>
 
       {/* Ledger CRUD + run reconciliation */}

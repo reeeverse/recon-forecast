@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -287,7 +290,7 @@ def get_exceptions(
         text(f"""
             SELECT
                 rr.id AS result_id, rr.match_type, rr.exception_kind, rr.confidence,
-                rr.score_amount, rr.score_date, rr.score_reference, rr.score_description,
+                rr.status, rr.score_amount, rr.score_date, rr.score_reference, rr.score_description,
                 b.id AS bank_id, b.txn_date AS bank_date, b.amount_paise AS bank_amount,
                 b.direction AS bank_dir, b.description AS bank_desc, b.reference AS bank_ref,
                 l.id AS ledger_id, l.txn_date AS ledger_date, l.amount_paise AS ledger_amount,
@@ -350,6 +353,7 @@ def get_exceptions(
                 match_type=r.match_type,
                 exception_kind=r.exception_kind or "none",
                 confidence=r.confidence or 0.0,
+                status=r.status or "open",
                 bank=bank,
                 ledger=ledger,
                 amount_delta_paise=amount_delta,
@@ -364,3 +368,73 @@ def get_exceptions(
         )
 
     return ExceptionsResponse(items=items, total=total)
+
+
+# ── Route 8: PATCH /reconciliation/{result_id}/status ─────────────────────────
+
+class StatusPatch(BaseModel):
+    status: str  # "confirmed" | "rejected"
+    notes: str | None = None
+
+
+@router.patch("/{result_id}/status")
+def update_result_status(
+    result_id: int,
+    body: StatusPatch,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """Manually confirm or reject a reconciliation result."""
+    if body.status not in ("confirmed", "rejected"):
+        raise HTTPException(status_code=422, detail="status must be 'confirmed' or 'rejected'")
+
+    row = db.execute(
+        text("""
+            SELECT rr.id, rr.status, rr.match_type, rr.batch_id
+            FROM reconciliation_results rr
+            JOIN import_batches ib ON ib.id = rr.batch_id
+            JOIN accounts a ON a.id = ib.account_id
+            WHERE rr.id = :rid AND a.user_id = :uid
+        """),
+        {"rid": result_id, "uid": user["id"]},
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="result not found")
+    if row.status != "open":
+        raise HTTPException(status_code=409, detail=f"result is already {row.status}")
+
+    db.execute(
+        text("UPDATE reconciliation_results SET status = :s, notes = :n WHERE id = :id"),
+        {"s": body.status, "n": body.notes, "id": result_id},
+    )
+
+    if body.status == "confirmed" and row.match_type == "review":
+        existing_vt = db.execute(
+            text("SELECT 1 FROM verified_transactions WHERE recon_result_id = :rid"),
+            {"rid": result_id},
+        ).fetchone()
+        if not existing_vt:
+            db.execute(
+                text("""
+                    INSERT INTO verified_transactions (recon_result_id, verified_via)
+                    VALUES (:rid, 'manual')
+                """),
+                {"rid": result_id},
+            )
+
+    db.execute(
+        text("""
+            INSERT INTO audit_logs (user_id, entity_type, entity_id, action, old_value, new_value, notes)
+            VALUES (:uid, 'recon_result', :eid, :action, :old, :new, :notes)
+        """),
+        {
+            "uid": user["id"],
+            "eid": result_id,
+            "action": body.status,
+            "old": json.dumps({"status": "open"}),
+            "new": json.dumps({"status": body.status}),
+            "notes": body.notes,
+        },
+    )
+    db.commit()
+    return {"result_id": result_id, "status": body.status}

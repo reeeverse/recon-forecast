@@ -14,6 +14,7 @@ const UploadPage      = lazy(() => import("./pages/UploadPage"));
 const ChatPage        = lazy(() => import("./pages/ChatPage"));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
 const SettingsPage    = lazy(() => import("./pages/SettingsPage"));
+const AuditTrailPage  = lazy(() => import("./pages/AuditTrailPage"));
 
 // Single design token set — dark particle field
 const T = {
@@ -58,6 +59,7 @@ const NAV = [
   { key: "ai",             label: "AI Agent",       path: "/dashboard/ai" },
   { key: "connections",    label: "Connections",    path: "/dashboard/connections" },
   { key: "settings",      label: "Settings",       path: "/dashboard/settings" },
+  { key: "audit",         label: "Audit Trail",    path: "/dashboard/audit" },
 ];
 
 const fmtBalance = (p) =>
@@ -312,6 +314,7 @@ function Dashboard({ user, onLogout }) {
                   <Route path="/ai"          element={<ChatPage theme={T} accountId={accountId} />} />
                   <Route path="/connections" element={<ConnectionsPage theme={T} />} />
                   <Route path="/settings"   element={<SettingsPage />} />
+                  <Route path="/audit"      element={<AuditTrailPage accountId={accountId} />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>

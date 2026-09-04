@@ -87,6 +87,7 @@ class ExceptionItem(BaseModel):
     match_type: str
     exception_kind: str
     confidence: float
+    status: str
     bank: BankSide | None
     ledger: LedgerSide | None
     amount_delta_paise: int | None
@@ -108,6 +109,10 @@ class AccountSummary(BaseModel):
     current_balance_paise: int
     min_threshold_paise: int
     has_active_alert: bool
+    account_type: str = "current"
+    bank_name: str | None = None
+    bank_branch: str | None = None
+    ifsc_code: str | None = None
 
 
 class CashPositionResponse(BaseModel):

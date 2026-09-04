@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -27,13 +28,14 @@ class LedgerEntryIn(BaseModel):
     counterparty: str = ""
 
 
-class LedgerEntryPatch(BaseModel):
-    txn_date: date | None = None
-    amount_paise: int | None = None
-    direction: str | None = None
-    description: str | None = None
-    reference: str | None = None
-    counterparty: str | None = None
+class LedgerCorrectionIn(BaseModel):
+    txn_date: date
+    amount_paise: int
+    direction: str
+    description: str = ""
+    reference: str = ""
+    counterparty: str = ""
+    correction_note: str
 
 
 def _row_hash(fields: list) -> str:
@@ -55,7 +57,7 @@ def _verify_batch(batch_id: int, user_id: int, db: Session):
 
 
 def _to_dict(r) -> dict:
-    return {
+    d = {
         "id": r.id,
         "txn_date": r.txn_date.isoformat(),
         "amount_paise": r.amount_paise,
@@ -63,7 +65,10 @@ def _to_dict(r) -> dict:
         "description": r.description or "",
         "reference": r.reference or "",
         "counterparty": r.counterparty or "",
+        "is_corrected": getattr(r, "is_corrected", False) or False,
+        "corrects_id": getattr(r, "corrects_id", None),
     }
+    return d
 
 
 # ── GET /ledger-entries?batch_id= ─────────────────────────────────────────────
@@ -77,7 +82,8 @@ def list_entries(
     _verify_batch(batch_id, user["id"], db)
     rows = db.execute(
         text("""
-            SELECT id, txn_date, amount_paise, direction, description, reference, counterparty
+            SELECT id, txn_date, amount_paise, direction, description, reference,
+                   counterparty, is_corrected, corrects_id
             FROM ledger_entries WHERE batch_id = :bid ORDER BY txn_date, id
         """),
         {"bid": batch_id},
@@ -128,19 +134,39 @@ def create_entry(
     return _to_dict(row)
 
 
-# ── PATCH /ledger-entries/{id} ────────────────────────────────────────────────
+# ── PATCH /ledger-entries/{id} — IMMUTABLE ────────────────────────────────────
 
-@router.patch("/{entry_id}")
-def update_entry(
+@router.patch("/{entry_id}", status_code=409)
+def update_entry(entry_id: int):
+    raise HTTPException(
+        status_code=409,
+        detail="Ledger entries are immutable. Use POST /{id}/correct to add a correction.",
+    )
+
+
+# ── DELETE /ledger-entries/{id} — IMMUTABLE ───────────────────────────────────
+
+@router.delete("/{entry_id}", status_code=409)
+def delete_entry(entry_id: int):
+    raise HTTPException(
+        status_code=409,
+        detail="Ledger entries are immutable and cannot be deleted.",
+    )
+
+
+# ── POST /ledger-entries/{id}/correct ────────────────────────────────────────
+
+@router.post("/{entry_id}/correct", status_code=201)
+def correct_entry(
     entry_id: int,
-    body: LedgerEntryPatch,
+    body: LedgerCorrectionIn,
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
     existing = db.execute(
         text("""
-            SELECT le.id, le.account_id, le.txn_date, le.amount_paise,
-                   le.direction, le.description, le.reference, le.counterparty
+            SELECT le.id, le.batch_id, le.account_id, le.txn_date, le.amount_paise,
+                   le.direction, le.description, le.reference, le.counterparty, le.is_corrected
             FROM ledger_entries le
             JOIN import_batches ib ON ib.id = le.batch_id
             JOIN accounts a ON a.id = ib.account_id
@@ -150,61 +176,59 @@ def update_entry(
     ).fetchone()
     if not existing:
         raise HTTPException(status_code=404, detail="entry not found")
-
-    txn_date    = body.txn_date    if body.txn_date    is not None else existing.txn_date
-    amount      = body.amount_paise if body.amount_paise is not None else existing.amount_paise
-    direction   = body.direction   if body.direction   is not None else existing.direction
-    description = body.description if body.description is not None else existing.description or ""
-    reference   = body.reference   if body.reference   is not None else existing.reference or ""
-    counterparty = body.counterparty if body.counterparty is not None else existing.counterparty or ""
-
-    if direction not in ("credit", "debit"):
+    if existing.is_corrected:
+        raise HTTPException(status_code=409, detail="entry has already been corrected")
+    if body.direction not in ("credit", "debit"):
         raise HTTPException(status_code=422, detail="direction must be 'credit' or 'debit'")
 
     new_hash = _row_hash([
         existing.account_id,
-        txn_date.isoformat(),
-        amount, direction,
-        description.upper(), reference.upper(), counterparty.upper(),
+        body.txn_date.isoformat(),
+        body.amount_paise, body.direction,
+        body.description.upper(), body.reference.upper(), body.counterparty.upper(),
     ])
 
-    row = db.execute(
+    new_row = db.execute(
         text("""
-            UPDATE ledger_entries
-            SET txn_date=:txn_date, amount_paise=:amt, direction=:dir,
-                description=:desc, reference=:ref, counterparty=:cpty, raw_row_hash=:hash
-            WHERE id=:id
-            RETURNING id, txn_date, amount_paise, direction, description, reference, counterparty
+            INSERT INTO ledger_entries
+                (batch_id, account_id, txn_date, amount_paise, direction,
+                 description, reference, counterparty, raw_row_hash, corrects_id)
+            VALUES
+                (:bid, :aid, :txn_date, :amt, :dir, :desc, :ref, :cpty, :hash, :corrects_id)
+            RETURNING id, txn_date, amount_paise, direction, description,
+                      reference, counterparty, is_corrected, corrects_id
         """),
         {
-            "id": entry_id, "txn_date": txn_date, "amt": amount,
-            "dir": direction, "desc": description, "ref": reference,
-            "cpty": counterparty, "hash": new_hash,
+            "bid": existing.batch_id, "aid": existing.account_id,
+            "txn_date": body.txn_date, "amt": body.amount_paise,
+            "dir": body.direction, "desc": body.description,
+            "ref": body.reference, "cpty": body.counterparty,
+            "hash": new_hash, "corrects_id": entry_id,
         },
     ).fetchone()
-    db.commit()
-    return _to_dict(row)
 
+    db.execute(
+        text("UPDATE ledger_entries SET is_corrected = true WHERE id = :id"),
+        {"id": entry_id},
+    )
 
-# ── DELETE /ledger-entries/{id} ───────────────────────────────────────────────
-
-@router.delete("/{entry_id}", status_code=204)
-def delete_entry(
-    entry_id: int,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user),
-):
-    result = db.execute(
+    old_val = {
+        "txn_date": existing.txn_date.isoformat(),
+        "amount_paise": existing.amount_paise,
+        "direction": existing.direction,
+    }
+    db.execute(
         text("""
-            DELETE FROM ledger_entries le
-            USING import_batches ib, accounts a
-            WHERE le.id = :id
-              AND le.batch_id = ib.id
-              AND ib.account_id = a.id
-              AND a.user_id = :uid
+            INSERT INTO audit_logs (user_id, entity_type, entity_id, action, old_value, new_value, notes)
+            VALUES (:uid, 'ledger_entry', :eid, 'correction_added', :old, :new, :notes)
         """),
-        {"id": entry_id, "uid": user["id"]},
+        {
+            "uid": user["id"],
+            "eid": entry_id,
+            "old": json.dumps(old_val),
+            "new": json.dumps({"correction_entry_id": new_row.id}),
+            "notes": body.correction_note,
+        },
     )
     db.commit()
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="entry not found")
+    return _to_dict(new_row)

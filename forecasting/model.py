@@ -14,7 +14,8 @@ import pandas as pd
 def naive_forecast(series: pd.Series, horizon: int = 14) -> list[dict]:
     """
     Fallback when history < 14 days.
-    Projects last balance + average of last 7 daily changes.
+    Projects last balance + average daily change, with a small realistic
+    uncertainty band (±0.5% of balance) so the chart is never a flat line.
     """
     if len(series) == 0:
         last = 0
@@ -24,16 +25,21 @@ def naive_forecast(series: pd.Series, horizon: int = 14) -> list[dict]:
         changes = series.diff().dropna()
         avg_change = int(changes.tail(7).mean()) if len(changes) >= 1 else 0
 
+    # Minimum band: 0.5% of balance or ₹500, whichever is larger
+    band_per_day = max(50000, int(abs(last) * 0.005))
+
     today = date.today()
-    return [
-        {
+    results = []
+    for i in range(1, horizon + 1):
+        mid = last + avg_change * i
+        band = band_per_day * int(np.sqrt(i))
+        results.append({
             "horizon_date": today + timedelta(days=i),
-            "predicted_close_paise": last + avg_change * i,
-            "predicted_low_paise": None,
-            "predicted_high_paise": None,
-        }
-        for i in range(1, horizon + 1)
-    ]
+            "predicted_close_paise": mid,
+            "predicted_low_paise": mid - band,
+            "predicted_high_paise": mid + band,
+        })
+    return results
 
 
 def holt_forecast(series: pd.Series, horizon: int = 14) -> list[dict]:
@@ -61,6 +67,11 @@ def holt_forecast(series: pd.Series, horizon: int = 14) -> list[dict]:
         )
         fc = fit.forecast(horizon)
         resid_sigma = float(np.std(y[1:] - fit.fittedvalues[1:]))
+
+        # Ensure a visible confidence band even for stable/low-volatility series
+        last_val = float(y[-1]) if len(y) else 0.0
+        min_sigma = max(50000.0, abs(last_val) * 0.003)
+        resid_sigma = max(resid_sigma, min_sigma)
 
     except Exception:
         return naive_forecast(series, horizon)

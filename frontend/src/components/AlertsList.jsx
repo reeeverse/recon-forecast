@@ -13,15 +13,17 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', {
   day: '2-digit', month: 'short', year: 'numeric',
 }) : '—'
 
-export default function AlertsList() {
+export default function AlertsList({ accountId }) {
   const [alerts, setAlerts] = useState(null)
   const [err, setErr] = useState(null)
 
   useEffect(() => {
-    apiFetch('/alerts')
+    setAlerts(null); setErr(null)
+    const q = accountId ? `/alerts?account_id=${accountId}` : '/alerts'
+    apiFetch(q)
       .then((d) => setAlerts(d.items ?? []))
       .catch((e) => setErr(e.message))
-  }, [])
+  }, [accountId])
 
   if (err) return (
     <div style={{ color: 'var(--danger)', fontSize: 13 }}>{err}</div>

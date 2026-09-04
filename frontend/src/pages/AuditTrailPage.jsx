@@ -52,10 +52,10 @@ export default function AuditTrailPage({ accountId }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 4 }}>
-          Audit Trail
+          Activity Log
         </h1>
         <p style={{ fontSize: 14, color: 'var(--ink-muted)', margin: 0 }}>
-          Permanent record of every reconciliation action — confirmations, rejections, and ledger corrections.
+          Every action taken on this account — confirmations, rejections, and corrections — permanently recorded.
         </p>
       </div>
 

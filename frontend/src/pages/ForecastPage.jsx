@@ -20,10 +20,10 @@ export default function ForecastPage({ accountId, accent }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', marginBottom: 4 }}>
-          Forecast
+          Cash Outlook
         </h1>
         <p style={{ fontSize: 14, color: 'var(--ink-muted)', margin: '4px 0 16px' }}>
-          14-day cash position and liquidity outlook.
+          Current balance and 14-day cash projection.
         </p>
         <CashPositionBar accountId={accountId} />
       </div>

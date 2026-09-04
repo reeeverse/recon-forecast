@@ -303,6 +303,8 @@ def list_accounts(db: Session = Depends(get_db), user: dict = Depends(get_curren
                 a.id, a.name, a.currency,
                 a.opening_balance_paise,
                 a.min_threshold_paise,
+                a.account_type,
+                a.bank_name, a.bank_branch, a.ifsc_code,
                 EXISTS (
                     SELECT 1 FROM alerts al
                     WHERE al.account_id = a.id AND al.status = 'active'
@@ -332,6 +334,10 @@ def list_accounts(db: Session = Depends(get_db), user: dict = Depends(get_curren
                 current_balance_paise=current,
                 min_threshold_paise=r.min_threshold_paise,
                 has_active_alert=r.has_active_alert,
+                account_type=r.account_type or "current",
+                bank_name=r.bank_name,
+                bank_branch=r.bank_branch,
+                ifsc_code=r.ifsc_code,
             )
         )
     return result

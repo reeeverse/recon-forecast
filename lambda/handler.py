@@ -28,7 +28,7 @@ def handler(event, context):
         s3_prefix = "/".join(parts[:3]) + "/"
 
         payload = json.dumps(
-            {"account_id": account_id, "s3_prefix": s3_prefix, "bucket": bucket}
+            {"account_id": account_id, "prefix": s3_prefix, "bucket": bucket}
         ).encode()
 
         req = urllib.request.Request(

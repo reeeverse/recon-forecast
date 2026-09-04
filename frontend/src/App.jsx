@@ -14,6 +14,7 @@ const UploadPage      = lazy(() => import("./pages/UploadPage"));
 const ChatPage        = lazy(() => import("./pages/ChatPage"));
 const ConnectionsPage = lazy(() => import("./pages/ConnectionsPage"));
 const SettingsPage    = lazy(() => import("./pages/SettingsPage"));
+const AuditTrailPage  = lazy(() => import("./pages/AuditTrailPage"));
 
 // Single design token set — dark particle field
 const T = {
@@ -51,13 +52,14 @@ const CSS_VARS = {
 Object.entries(CSS_VARS).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
 
 const NAV = [
-  { key: "reconciliation", label: "Reconciliation", path: "/dashboard" },
-  { key: "forecast",       label: "Forecast",       path: "/dashboard/forecast" },
-  { key: "alerts",         label: "Alerts",         path: "/dashboard/alerts" },
-  { key: "upload",         label: "Upload",         path: "/dashboard/upload" },
-  { key: "ai",             label: "AI Agent",       path: "/dashboard/ai" },
-  { key: "connections",    label: "Connections",    path: "/dashboard/connections" },
-  { key: "settings",      label: "Settings",       path: "/dashboard/settings" },
+  { key: "reconciliation", label: "Match & Review",  path: "/dashboard" },
+  { key: "forecast",       label: "Cash Outlook",    path: "/dashboard/forecast" },
+  { key: "alerts",         label: "Warnings",        path: "/dashboard/alerts" },
+  { key: "upload",         label: "Upload",          path: "/dashboard/upload" },
+  { key: "ai",             label: "AI Chat",         path: "/dashboard/ai" },
+  { key: "connections",    label: "Connections",     path: "/dashboard/connections" },
+  { key: "settings",       label: "Settings",        path: "/dashboard/settings" },
+  { key: "audit",          label: "Activity",        path: "/dashboard/audit" },
 ];
 
 const fmtBalance = (p) =>
@@ -139,6 +141,16 @@ function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, 
               {activeAccount.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
             </div>
           )}
+          <button
+            onClick={() => handleNav("/dashboard/settings")}
+            style={{
+              marginTop: 6, padding: 0, background: "none", border: "none",
+              color: T.inkSubtle, fontSize: 11, cursor: "pointer",
+              textAlign: "left", letterSpacing: "0.01em",
+            }}
+          >
+            ＋ Add account
+          </button>
         </div>
 
         <nav style={{ flex: 1, padding: "4px 8px" }}>
@@ -307,11 +319,12 @@ function Dashboard({ user, onLogout }) {
                 <Routes location={location}>
                   <Route path="/" element={<ReconciliationPage accountId={accountId} batchId={batchId} />} />
                   <Route path="/forecast"    element={<ForecastPage accountId={accountId} accent={T.accent} />} />
-                  <Route path="/alerts"      element={<AlertsPage />} />
+                  <Route path="/alerts"      element={<AlertsPage accountId={accountId} />} />
                   <Route path="/upload"      element={<UploadPage theme={T} accountId={accountId} />} />
                   <Route path="/ai"          element={<ChatPage theme={T} accountId={accountId} />} />
                   <Route path="/connections" element={<ConnectionsPage theme={T} />} />
                   <Route path="/settings"   element={<SettingsPage />} />
+                  <Route path="/audit"      element={<AuditTrailPage accountId={accountId} />} />
                 </Routes>
               </motion.div>
             </AnimatePresence>

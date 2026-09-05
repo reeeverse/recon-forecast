@@ -5,11 +5,11 @@ import Skeleton from './Skeleton'
 const fmt = (n) => (n ?? 0).toLocaleString('en-IN')
 
 const LEGENDS = [
-  { key: 'auto_matched',     label: 'Matched',      meaning: 'High confidence (≥85%) — bank and book entries lined up automatically and are included in your cash position.' },
-  { key: 'review',           label: 'Needs Review', meaning: 'Probable match (60–84%) found but not certain enough to auto-confirm. A quick human check is all that\'s needed.' },
-  { key: 'unmatched_bank',   label: 'Bank Only',    meaning: 'Bank shows a transaction your books don\'t have — could be a missing ledger entry or an unrecorded bank charge.' },
-  { key: 'unmatched_ledger', label: 'Book Only',    meaning: 'Your books have an entry the bank hasn\'t confirmed — could be a future-dated cheque, timing difference, or posting error.' },
-  { key: 'duplicates',       label: 'Duplicates',   meaning: 'Same bank transaction appears more than once in the uploaded statement. Duplicates are excluded from matching.' },
+  { key: 'auto_matched',     label: 'Auto Matched',      meaning: 'High confidence (≥85%) — bank and book entries lined up automatically and are included in your cash position.' },
+  { key: 'review',           label: 'For Review',        meaning: 'Probable match (60–84%) found but not certain enough to auto-confirm. A quick human check is all that\'s needed.' },
+  { key: 'unmatched_bank',   label: 'Unmatched Bank',    meaning: 'Bank shows a transaction your books don\'t have — could be a missing ledger entry or an unrecorded bank charge.' },
+  { key: 'unmatched_ledger', label: 'Unmatched Ledger',  meaning: 'Your books have an entry the bank hasn\'t confirmed — could be a future-dated cheque, timing difference, or posting error.' },
+  { key: 'duplicates',       label: 'Duplicates',        meaning: 'Same bank transaction appears more than once in the uploaded statement. Duplicates are excluded from matching.' },
 ]
 
 function MetricCard({ label, value, sub, color, legendKey, onHover, hovered }) {
@@ -90,7 +90,7 @@ export default function ReconSummaryCards({ accountId }) {
       {/* Primary cards */}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <MetricCard
-          label="Matched"
+          label="Auto Matched"
           value={fmt(totals.auto_matched)}
           sub={`${matchRate}% of bank lines`}
           color="var(--success)"
@@ -99,7 +99,7 @@ export default function ReconSummaryCards({ accountId }) {
           hovered={hovered}
         />
         <MetricCard
-          label="Needs Review"
+          label="For Review"
           value={fmt(totals.review)}
           sub={totals.review > 0 ? `${reviewRate}% need a quick check` : 'all clear'}
           color={totals.review > 0 ? 'var(--warning)' : 'var(--ink-muted)'}
@@ -108,7 +108,7 @@ export default function ReconSummaryCards({ accountId }) {
           hovered={hovered}
         />
         <MetricCard
-          label="Bank Only"
+          label="Unmatched Bank"
           value={fmt(totals.unmatched_bank)}
           sub="not in your books"
           color={totals.unmatched_bank > 0 ? 'var(--danger)' : 'var(--ink-muted)'}
@@ -117,7 +117,7 @@ export default function ReconSummaryCards({ accountId }) {
           hovered={hovered}
         />
         <MetricCard
-          label="Book Only"
+          label="Unmatched Ledger"
           value={fmt(totals.unmatched_ledger)}
           sub="not confirmed by bank"
           color={totals.unmatched_ledger > 0 ? 'var(--danger)' : 'var(--ink-muted)'}
@@ -135,7 +135,7 @@ export default function ReconSummaryCards({ accountId }) {
           hovered={hovered}
         />
         <MetricCard
-          label="Match Score"
+          label="Avg Confidence"
           value={avg_confidence ? `${avg_confidence.toFixed(1)}%` : '—'}
           sub={`${fmt(verified_count)} confirmed`}
         />

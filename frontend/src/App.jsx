@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiFetch } from "./api";
@@ -68,6 +68,112 @@ const fmtBalance = (p) =>
     notation: "compact", maximumFractionDigits: 1,
   }).format(p / 100);
 
+function AccountSwitcher({ accounts, accountId, setAccountId, onAddAccount }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const active = accounts.find(a => a.id === accountId);
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const safe = !active || active.current_balance_paise >= active.min_threshold_paise;
+
+  return (
+    <div ref={ref} style={{ padding: "10px 12px 8px", borderBottom: `1px solid ${T.hairline}` }}>
+      <div style={{ fontSize: 10, color: T.inkSubtle, textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 6 }}>
+        Account
+      </div>
+
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%", textAlign: "left", background: "rgba(255,255,255,0.04)",
+          border: `1px solid ${open ? T.accent : T.hairline}`,
+          borderRadius: 9, padding: "8px 10px", cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          transition: "border-color 0.15s",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {active?.name ?? "Select account"}
+          </div>
+          {active && (
+            <div style={{ fontSize: 11, marginTop: 2, fontVariantNumeric: "tabular-nums", color: safe ? T.success : T.danger }}>
+              {fmtBalance(active.current_balance_paise)}
+              {active.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
+              {active.account_type === "savings" && (
+                <span style={{ marginLeft: 6, color: T.inkSubtle }}>savings</span>
+              )}
+            </div>
+          )}
+        </div>
+        <span style={{ color: T.inkMuted, fontSize: 10, marginLeft: 6, flexShrink: 0 }}>
+          {open ? "▲" : "▼"}
+        </span>
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div style={{
+          position: "absolute", zIndex: 200, left: 12, right: 12,
+          marginTop: 4,
+          background: "#1a1f28",
+          border: `1px solid ${T.hairline}`,
+          borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+          overflow: "hidden",
+        }}>
+          {accounts.map(a => {
+            const isCurrent = a.id === accountId;
+            const acctSafe = a.current_balance_paise >= a.min_threshold_paise;
+            return (
+              <button
+                key={a.id}
+                onClick={() => { setAccountId(a.id); setOpen(false); }}
+                style={{
+                  width: "100%", textAlign: "left", padding: "10px 14px",
+                  background: isCurrent ? "rgba(56,139,253,0.12)" : "transparent",
+                  border: "none", borderBottom: `1px solid ${T.hairline}`,
+                  cursor: "pointer", display: "flex", alignItems: "center", gap: 10,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: isCurrent ? 600 : 400, color: isCurrent ? T.accent : T.ink, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {a.name}
+                    {isCurrent && <span style={{ marginLeft: 6, fontSize: 10, color: T.accent }}>●</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: acctSafe ? T.success : T.danger, marginTop: 1, fontVariantNumeric: "tabular-nums" }}>
+                    {fmtBalance(a.current_balance_paise)}
+                    {a.account_type === "savings" && <span style={{ marginLeft: 6, color: T.inkSubtle }}>savings</span>}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => { setOpen(false); onAddAccount(); }}
+            style={{
+              width: "100%", textAlign: "left", padding: "9px 14px",
+              background: "transparent", border: "none",
+              color: T.inkMuted, fontSize: 12, cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 6,
+            }}
+          >
+            <span style={{ fontSize: 14, color: T.accent }}>＋</span> Add account
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, onLogout, isMobile, open, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,42 +222,12 @@ function Sidebar({ accounts, accountId, setAccountId, alertCount, health, user, 
           <div style={{ fontSize: 11, color: T.inkSubtle, marginTop: 2 }}>Liquidity Intelligence</div>
         </div>
 
-        <div style={{ padding: "12px 12px 8px" }}>
-          <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Account
-          </div>
-          <select
-            value={accountId}
-            onChange={e => { setAccountId(e.target.value); if (isMobile) onClose(); }}
-            style={{
-              width: "100%", padding: "6px 8px",
-              background: T.surface2, border: `1px solid ${T.hairline}`,
-              borderRadius: 8, color: T.ink, fontSize: 13,
-            }}
-          >
-            {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-          </select>
-          {activeAccount && (
-            <div style={{
-              fontSize: 11, marginTop: 5, fontVariantNumeric: "tabular-nums",
-              color: activeAccount.current_balance_paise >= activeAccount.min_threshold_paise
-                ? T.success : T.danger,
-            }}>
-              {fmtBalance(activeAccount.current_balance_paise)}
-              {activeAccount.has_active_alert && <span style={{ marginLeft: 4 }}>⚠</span>}
-            </div>
-          )}
-          <button
-            onClick={() => handleNav("/dashboard/settings")}
-            style={{
-              marginTop: 6, padding: 0, background: "none", border: "none",
-              color: T.inkSubtle, fontSize: 11, cursor: "pointer",
-              textAlign: "left", letterSpacing: "0.01em",
-            }}
-          >
-            ＋ Add account
-          </button>
-        </div>
+        <AccountSwitcher
+          accounts={accounts}
+          accountId={accountId}
+          setAccountId={(id) => { setAccountId(id); if (isMobile) onClose(); }}
+          onAddAccount={() => handleNav("/dashboard/settings")}
+        />
 
         <nav style={{ flex: 1, padding: "4px 8px" }}>
           {NAV.map(n => {

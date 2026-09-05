@@ -29,7 +29,7 @@ def daily_balance_series(account_id: str, db: Session) -> pd.Series:
 
     txns = db.execute(
         text("""
-            SELECT txn_date, amount_paise
+            SELECT txn_date, amount_paise, direction
             FROM verified_transactions
             WHERE account_id = :id
             ORDER BY txn_date
@@ -43,7 +43,8 @@ def daily_balance_series(account_id: str, db: Session) -> pd.Series:
     for t in txns:
         ts = pd.Timestamp(t.txn_date)
         if ts in net.index:
-            net.loc[ts] += t.amount_paise
+            signed = t.amount_paise if t.direction == "credit" else -t.amount_paise
+            net.loc[ts] += signed
 
     return (opening_paise + net.cumsum()).rename(account_id)
 
@@ -52,7 +53,9 @@ def current_cash_position(account_id: str, db: Session) -> int:
     """Return current cash balance in paise (opening + all verified movements)."""
     row = db.execute(
         text("""
-            SELECT a.opening_balance_paise + COALESCE(SUM(vt.amount_paise), 0) AS balance
+            SELECT a.opening_balance_paise + COALESCE(SUM(
+                CASE WHEN vt.direction = 'credit' THEN vt.amount_paise ELSE -vt.amount_paise END
+            ), 0) AS balance
             FROM accounts a
             LEFT JOIN verified_transactions vt ON vt.account_id = a.id
             WHERE a.id = :id

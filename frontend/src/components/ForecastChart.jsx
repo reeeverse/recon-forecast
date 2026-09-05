@@ -95,9 +95,9 @@ export default function ForecastChart({ accountId, threshold, accent = "#388bfd"
       padding: '16px 20px',
     }}>
       <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--ink)' }}>
-        14-Day Cash Outlook
+        14-Day Cash Forecast
         <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink-muted)', marginLeft: 8 }}>
-          Shaded area shows likely range
+          Holt double-exponential (α=0.4, β=0.2)
         </span>
       </div>
       <ResponsiveContainer width="100%" height={220}>

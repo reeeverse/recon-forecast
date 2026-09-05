@@ -389,38 +389,11 @@ def get_forecast(account_id: str, db: Session = Depends(get_db), user: dict = De
     if not account:
         raise HTTPException(status_code=404, detail="account not found")
 
-    rows = db.execute(
-        text("""
-            SELECT horizon_date, predicted_close_paise, predicted_low_paise,
-                   predicted_high_paise, run_at, model
-            FROM forecasts
-            WHERE account_id = :aid
-              AND run_at = (
-                SELECT MAX(run_at) FROM forecasts WHERE account_id = :aid
-              )
-            ORDER BY horizon_date
-        """),
-        {"aid": account_id},
-    ).fetchall()
-
-    if not rows:
-        # compute on-the-fly
-        series = daily_balance_series(account_id, db)
-        fc_points = holt_forecast(series, horizon=14)
-        run_at = datetime.now(timezone.utc)
-        model = "holt"
-    else:
-        fc_points = [
-            {
-                "horizon_date": r.horizon_date,
-                "predicted_close_paise": r.predicted_close_paise,
-                "predicted_low_paise": r.predicted_low_paise,
-                "predicted_high_paise": r.predicted_high_paise,
-            }
-            for r in rows
-        ]
-        run_at = rows[0].run_at
-        model = rows[0].model
+    # Always compute fresh so confidence bands reflect current data
+    series = daily_balance_series(account_id, db)
+    fc_points = holt_forecast(series, horizon=14)
+    run_at = datetime.now(timezone.utc)
+    model = "holt"
 
     return ForecastResponse(
         account_id=account_id,

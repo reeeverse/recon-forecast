@@ -52,13 +52,13 @@ def create_account(
         text("""
             INSERT INTO accounts
                 (id, user_id, name, currency, account_type, opening_balance_paise,
-                 opening_balance_date, current_balance_paise, min_threshold_paise,
+                 opening_balance_date, min_threshold_paise,
                  bank_name, bank_branch, ifsc_code)
             VALUES
                 (:id, :uid, :name, 'INR', :acct_type, :ob_paise,
-                 :ob_date, :ob_paise, :threshold,
+                 :ob_date, :threshold,
                  :bank_name, :bank_branch, :ifsc_code)
-            RETURNING id, name, currency, account_type, current_balance_paise,
+            RETURNING id, name, currency, account_type, opening_balance_paise,
                       min_threshold_paise, bank_name, bank_branch, ifsc_code
         """),
         {
@@ -78,7 +78,7 @@ def create_account(
         "name": row.name,
         "currency": row.currency,
         "account_type": row.account_type,
-        "current_balance_paise": row.current_balance_paise,
+        "current_balance_paise": row.opening_balance_paise,
         "min_threshold_paise": row.min_threshold_paise,
         "bank_name": row.bank_name,
         "bank_branch": row.bank_branch,

@@ -49,8 +49,10 @@ def test_holt_falls_back_on_short_history():
     series = _make_series(5)
     result = holt_forecast(series, horizon=14)
     assert len(result) == 14
-    # fallback returns None bands
-    assert result[0]["predicted_low_paise"] is None
+    # fallback (naive) still returns visible bands
+    assert result[0]["predicted_low_paise"] is not None
+    assert result[0]["predicted_high_paise"] is not None
+    assert result[0]["predicted_low_paise"] < result[0]["predicted_high_paise"]
 
 
 def test_holt_returns_horizon_points():
